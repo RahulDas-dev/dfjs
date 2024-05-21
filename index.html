@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dfjs App</title>
+    <style>
+      :root {
+        font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+        line-height: 1.5;
+        font-weight: 400;
+        color-scheme: light dark;
+        color: rgba(255, 255, 255, 0.87);
+        background-color: #F2F3F4 ;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      html {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        height: 100vh;
+      }
+      body{
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+      }
+      .dataloader{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+      }
+      input[type="file"]{
+        width: 40%;
+        height: 38px;
+        border: 1px solid #ccc;
+        border-radius: 3px 0px 0px 3px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #F8F9F9;
+        color: #17202A;
+        font-family: monospace;
+      }
+      input[type="file"]::file-selector-button{
+        border-radius: 3px 0px 0px 3px;
+        border: 1px solid rgba(0, 0, 0, 0.16);
+        height: 100%;
+        width: 15%;
+        transition: 1s;
+        outline: none;
+        background-color: #242424;
+        color: #ccc;
+        cursor: pointer;
+        box-shadow: none;
+        margin: 0;
+      }
+      input[type="file"]::file-selector-button:hover {
+        background-color: #343434;
+      }
+      input[type="file"]::file-selector-button:active {
+        background-color: #444444;
+      }
+      button {
+        border-radius: 0px 3px 3px 0px;
+        border: 1px solid transparent;
+        height: 39px;
+        background-color: #242424;
+        padding: 0px 10px;
+        color: #ccc;
+        cursor: pointer;
+        transition: border-color 0.25s;
+      }
+      button:hover {
+        border-color: #343434;
+      }
+      button:focus,
+      button:focus-visible {
+        outline: 0px 3px 3px 0px auto -webkit-focus-ring-color;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dataloader">
+      <input  type="file" 
+              id="file-input" 
+              placeholder=" CSV, TSV Files Allowed Only ..."
+              accept=".csv, .tsv"
+              class="file-input"/>
+      <button id="reset-btn">Reset</button>        
+    </div>
+    <div class="plot-area">
+    </div>  
+    <!-- <script type="module" src="/dist/index.ts"></script> -->
+    <script  type="module">
+      import { readCSV } from "dfjs"
+
+      const file_input = document.getElementById('file-input')
+      const reset_btn = document.getElementById('reset-btn')
+      reset_btn.style.visibility='hidden'
+
+      file_input.onchange = async (event) => {
+        const file_object = event.target.files[0]
+        const fileurl = URL.createObjectURL(file_object)
+        console.log(`File Name ${file_object.name} URL ${fileurl}`)
+        if (fileurl){
+          reset_btn.style.visibility = 'visible'
+        }
+        const df = await readCSV(fileurl)
+        console.log(`Columns Name - ${df.columns}`)
+        console.log(`Data Types - ${df.dtypes}`)
+        console.log(`Shape - ${df.shape}`)
+      }
+      reset_btn.onclick = async (event) => {
+        file_input.value = ''
+        reset_btn.style.visibility='hidden'
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "name": "dfjs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/dfjs.umd.cjs",
+  "module": "./dist/dfjs.js",
+  "exports": {
+    ".": {
+      "import": "./dist/dfjs.js",
+      "require": "./dist/dfjs.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.14",
+    "@types/table": "^6.3.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vite-plugin-dts": "^3.9.1"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.19.0",
+    "mathjs": "^12.4.2",
+    "papaparse": "^5.4.1",
+    "table": "^6.8.2"
+  }
+}
