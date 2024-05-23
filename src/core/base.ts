@@ -1,5 +1,3 @@
-//import { ArrayType1D, ArrayType2D } from "../types/base";
-
 import { ArrayType1D, ArrayType2D, DATA_TYPES, NdframeInputDataType } from "../types/base";
 import * as err from "../error";
 import * as math from 'mathjs'
@@ -9,7 +7,7 @@ import { TableConfigs, BASE_TABLE_CONFIG } from "../config/tableconfig";
 
 export default class NDframe {
     protected _isSeries: boolean;
-    protected _data: any
+    protected _data: ArrayType2D | ArrayType1D;
     protected _dataIncolumnFormat: ArrayType1D | ArrayType2D = []
     protected _index: Array<string | number > = []
     protected _columns: string[] = []
@@ -24,9 +22,10 @@ export default class NDframe {
         }
         this._isSeries = isSeries
         if (data === undefined || (Array.isArray(data) && data.length === 0)) {
-            if (columns === undefined) columns = [];
-            if (dtypes === undefined) dtypes = [];
-            if (columns.length === 0 && dtypes.length !== 0) throw new err.DtypeWithoutColumnError();
+            columns = (columns === undefined)? [] : columns ;
+            dtypes  = (dtypes === undefined)? []: dtypes;
+            if (columns.length === 0 && dtypes.length !== 0) 
+                throw new err.DtypeWithoutColumnError();
             this.loadArrayIntoNdframe({ data: [], index: [], columns: columns, dtypes: dtypes });
         } else if (utils.is1DArray(data)) {
             this.loadArrayIntoNdframe({ data, index, columns, dtypes });
@@ -83,7 +82,7 @@ export default class NDframe {
         }
     }
 
-     /**
+    /**
      * Internal function to load array of data into NDFrame
      * @param data The array of data to load into NDFrame
      * @param index Array of numeric or string names for subsetting array.
@@ -150,7 +149,7 @@ export default class NDframe {
      * performs a check to ensure that the column names are unique, and same length as the
      * number of columns in the data.
     */
-    private setColumnNames(columns?: string[]) {
+    private setColumnNames( columns? : string[]) {
         if (this._isSeries) {
             if (columns) {
                 if (this._data.length != 0 && columns.length != 1 && typeof columns != 'string') {
@@ -231,7 +230,6 @@ export default class NDframe {
                 if (this._data.length != 0 && dtypes.length != this.shape[1]) {
                     throw new err.DtypesLengthError(dtypes, this.shape)
                 }
-
                 if (this._data.length == 0 && dtypes.length == 0) {
                     this._dtypes = dtypes
                 } else {
@@ -240,11 +238,8 @@ export default class NDframe {
                             throw new err.DtypeNotSupportedError(dtype)
                         }
                     })
-
                     this._dtypes = dtypes
-
                 }
-
             } else {
                 this._dtypes = utils.inferDtype(this._data)
             }
@@ -257,6 +252,30 @@ export default class NDframe {
     */
     get dtypes(): Array<string> {
         return this._dtypes
+    }
+
+    /**
+     * Returns the dimension of the data. Series have a dimension of 1,
+     * while DataFrames have a dimension of 2.
+    */
+    get ndim(): number {
+        return this._isSeries ? 1 : 2 ;
+    }
+
+    tocsv(sep: string, header: boolean): string{
+        if (this._isSeries){
+            const csvStr = this._data.join(sep);
+            return csvStr
+        } else{
+            const rows = this._data as ArrayType2D
+            let csvStr = (header === true) ? `${this.columns.join(sep)}\n` : ""
+            for (let i = 0; i < rows.length; i++) {
+                const row = `${rows[i].join(sep)}\n`;
+                csvStr += row;
+            }
+            return csvStr
+        }
+        
     }
 
 }

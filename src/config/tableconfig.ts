@@ -1,4 +1,4 @@
-import { BaseUserConfig, TableUserConfig } from 'table';
+import {BaseUserConfig, TableUserConfig} from 'table';
 import { ConfigsType } from '../types/base';
 
 

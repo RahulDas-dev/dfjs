@@ -43,7 +43,7 @@ export type CsvOutputOptionsBrowser = { fileName?: string, sep?: string, header?
 
 export interface NdframeInputDataType {
     isSeries: boolean;
-    data: any
+    data: ArrayType1D | ArrayType2D;
     type?: number;
     index?: Array<string | number>
     columns?: string[]

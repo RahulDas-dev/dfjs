@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { ArrayType2D, CsvInputOptionsBrowser, CsvOutputOptionsBrowser } from '../types/base';
+import { CsvInputOptionsBrowser, CsvOutputOptionsBrowser } from '../types/base';
 import DataFrame from '../core/frame';
 
 /**
@@ -30,7 +30,7 @@ import DataFrame from '../core/frame';
  * const df = await readCSV("./data/sample.csv")
  * ```
  */
-export const readCSV = async (file: any, options?: CsvInputOptionsBrowser): Promise<DataFrame> => {
+export const readCSV = async (file: string, options?: CsvInputOptionsBrowser): Promise<DataFrame> => {
     const frameConfig = options?.frameConfig || {}
     console.log(frameConfig)
     return new Promise( (resolve, reject) => {
@@ -52,37 +52,14 @@ export const readCSV = async (file: any, options?: CsvInputOptionsBrowser): Prom
 };
 
 
-export const $toCSV = (df: DataFrame , options?: CsvOutputOptionsBrowser): string | void => {
-  let { fileName, download, sep, header } = { fileName: "output.csv", sep: ",", header: true, download: false, ...options }
-
-  if (df.isSeries) {
-    const csv = df.values.join(sep);
-
-    if (download) {
-      if (!(fileName.endsWith(".csv"))) {
-        fileName = fileName + ".csv"
-      }
-      downloadFileInBrowser(csv, fileName);
-    } else {
-      return csv;
-    }
+export const toCSV = (df: DataFrame , options?: CsvOutputOptionsBrowser): string | void => {
+  const { fileName, download, sep, header } = { fileName: "output.csv", sep: ",", header: true, download: false, ...options }
+  const csv = df.tocsv(sep, header);
+  if (download) {
+    const fileName_ = fileName.endsWith(".csv") ? fileName: fileName + ".csv"
+    downloadFileInBrowser(csv, fileName_);
   } else {
-    const rows = df.values as ArrayType2D
-    let csvStr = header === true ? `${df.columns.join(sep)}\n` : ""
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = `${rows[i].join(sep)}\n`;
-      csvStr += row;
-    }
-
-    if (download) {
-      if (!(fileName.endsWith(".csv"))) {
-        fileName = fileName + ".csv"
-      }
-      downloadFileInBrowser(csvStr, fileName);
-    } else {
-      return csvStr;
-    }
+    return csv;
   }
 };
 
@@ -91,12 +68,13 @@ export const $toCSV = (df: DataFrame , options?: CsvOutputOptionsBrowser): strin
  * @param content A string of CSV file contents
  * @param fileName  The name of the file to be downloaded
  */
-const downloadFileInBrowser = (content: any, fileName: string) => {
-  var hiddenElement = document.createElement('a');
+const downloadFileInBrowser = (content: string, fileName: string) => {
+  const hiddenElement = document.createElement('a');
   hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(content);
   hiddenElement.target = '_blank';
   hiddenElement.download = fileName;
   hiddenElement.click();
+  document.body.removeChild(hiddenElement);
 }
 
 

@@ -34,7 +34,7 @@ export function isString<T>(value: T): boolean {
  * @param value The value to check.
  * @returns 
  */
-export function isObject(value: any): boolean {
+export function isObject<T>(value: T): boolean {
   return value && typeof value === "object" && value.constructor && value.constructor.name === "Object";
 }
 
@@ -52,7 +52,7 @@ export function isEmpty<T>(value: T): boolean {
 * @param value A date object
 * @returns boolean
 */
-export function isDate(value: any): boolean {
+export function isDate<T>(value: T): boolean {
   return value instanceof Date;
 }
 
@@ -67,7 +67,7 @@ export function  inferDtype(arr: ArrayType1D | ArrayType2D) {
   } else {
       const arrSlice = transposeArray(arr.slice(0, config.getDtypeTestLim))
       const dtypes = arrSlice.map((innerArr) => {
-          return typeChecker(innerArr as any);
+          return typeChecker(innerArr);
       });
       return dtypes;
   }
@@ -80,11 +80,11 @@ export function  inferDtype(arr: ArrayType1D | ArrayType2D) {
 function typeChecker(arr: ArrayType1D | ArrayType2D) {
   let dtypes: string;
   let lim: number;
-  let intTracker: Array<boolean> = [];
-  let floatTracker: Array<boolean> = [];
-  let stringTracker: Array<boolean> = [];
-  let boolTracker: Array<boolean> = [];
-  let dateTracker: Array<boolean> = [];
+  const intTracker: Array<boolean> = [];
+  const floatTracker: Array<boolean> = [];
+  const stringTracker: Array<boolean> = [];
+  const boolTracker: Array<boolean> = [];
+  const dateTracker: Array<boolean> = [];
 
   if (arr.length < config.getDtypeTestLim) {
       lim = arr.length;
