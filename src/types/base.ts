@@ -1,10 +1,9 @@
 import { BaseUserConfig, TableUserConfig, } from "table"
 import { ParseConfig } from 'papaparse';
 
-
 export type DTYPES = "float32" | "int32" | "string" | "boolean" | "undefined"
 
-export const DATA_TYPES = ["float32", "int32", "string", "boolean", "datetime",'undefined'];
+export const DATA_TYPES = ["float32", "int32", "string", "boolean", "datetime", 'undefined'];
 
 export type ArrayType2D = Array<
     number[]
@@ -24,8 +23,8 @@ export interface ConfigsType {
     tableMaxColInConsole?: number;
     dtypeTestLim?: number;
     lowMemoryMode?: boolean
-    tfInstance?:    any
-}    
+    tfInstance?: boolean
+}
 
 export interface BaseDataOptionType {
     type?: number;
@@ -33,17 +32,17 @@ export interface BaseDataOptionType {
     columns?: string[]
     dtypes?: Array<string>
     config?: ConfigsType;
-}    
+}
 
 export interface CsvInputOptionsBrowser extends ParseConfig {
     frameConfig?: BaseDataOptionType
 }
 
-export interface CsvOutputOptionsBrowser { 
-    fileName?: string, 
-    sep?: string, 
-    header?: boolean, 
-    download?: boolean 
+export interface CsvOutputOptionsBrowser {
+    fileName?: string,
+    sep?: string,
+    header?: boolean,
+    download?: boolean
 };
 
 export interface NdframeInputDataType {
