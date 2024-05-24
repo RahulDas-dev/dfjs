@@ -18,13 +18,13 @@ export type ArrayType1D = Array<
     | boolean
     | (number | string | boolean)>
 
-export type ConfigsType = {
+export interface ConfigsType {
     tableDisplayConfig?: BaseUserConfig & TableUserConfig
     tableMaxRow?: number;
     tableMaxColInConsole?: number;
     dtypeTestLim?: number;
     lowMemoryMode?: boolean
-    tfInstance?: any
+    tfInstance?:    any
 }    
 
 export interface BaseDataOptionType {
@@ -38,8 +38,13 @@ export interface BaseDataOptionType {
 export interface CsvInputOptionsBrowser extends ParseConfig {
     frameConfig?: BaseDataOptionType
 }
-export type CsvOutputOptionsBrowser = { fileName?: string, sep?: string, header?: boolean, download?: boolean };
 
+export interface CsvOutputOptionsBrowser { 
+    fileName?: string, 
+    sep?: string, 
+    header?: boolean, 
+    download?: boolean 
+};
 
 export interface NdframeInputDataType {
     isSeries: boolean;

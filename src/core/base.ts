@@ -6,25 +6,25 @@ import * as utils from '../utility'
 import { TableConfigs, BASE_TABLE_CONFIG } from "../config/tableconfig";
 
 export default class NDframe {
-    protected _isSeries: boolean;
-    protected _data: ArrayType2D | ArrayType1D;
+    protected _isSeries: boolean
+    protected _data: ArrayType2D | ArrayType1D
     protected _dataIncolumnFormat: ArrayType1D | ArrayType2D = []
-    protected _index: Array<string | number > = []
+    protected _index: Array<string | number> = []
     protected _columns: string[] = []
     protected _dtypes: Array<string> = []
     protected _config: TableConfigs
-    
-    constructor({isSeries, data, index, columns, dtypes, config}: NdframeInputDataType ) {
+
+    constructor({ isSeries, data, index, columns, dtypes, config }: NdframeInputDataType) {
         if (config) {
-            this._config = new TableConfigs({ ...BASE_TABLE_CONFIG, ...config });
+            this._config = new TableConfigs({ ...BASE_TABLE_CONFIG, ...config })
         } else {
-            this._config = new TableConfigs(BASE_TABLE_CONFIG);
+            this._config = new TableConfigs(BASE_TABLE_CONFIG)
         }
         this._isSeries = isSeries
         if (data === undefined || (Array.isArray(data) && data.length === 0)) {
-            columns = (columns === undefined)? [] : columns ;
-            dtypes  = (dtypes === undefined)? []: dtypes;
-            if (columns.length === 0 && dtypes.length !== 0) 
+            columns = columns ?? []
+            dtypes = dtypes ?? []
+            if (columns.length === 0 && dtypes.length !== 0)
                 throw new err.DtypeWithoutColumnError();
             this.loadArrayIntoNdframe({ data: [], index: [], columns: columns, dtypes: dtypes });
         } else if (utils.is1DArray(data)) {
@@ -51,7 +51,7 @@ export default class NDframe {
     }
 
     /**
-     * Returns the underlying data in Array format.
+    * Returns the underlying data in Array format.
     */
     get values(): ArrayType1D | ArrayType2D {
         return this._data;
@@ -62,7 +62,7 @@ export default class NDframe {
     }
 
     /**
-     * Returns the shape of the NDFrame. Shape is determined by [row length, column length]
+    * Returns the shape of the NDFrame. Shape is determined by [row length, column length]
     */
     get shape(): Array<number> {
         if (this._isSeries) {
@@ -71,9 +71,9 @@ export default class NDframe {
             else
                 return [this._data.length, 1];
         } else {
-            if (this._data.length === 0){
+            if (this._data.length === 0) {
                 return [0, 0]
-            } 
+            }
             else {
                 const rowLen = (this._data).length
                 const colLen = (this._data[0] as []).length
@@ -95,7 +95,7 @@ export default class NDframe {
         if (!this._config.isLowMemoryMode) {
             //In NOT low memory mode, we transpose the array and save in column format.
             //This makes column data retrieval run in constant time
-            this._dataIncolumnFormat = utils.transposeArray(data)
+            this._dataIncolumnFormat = utils.transposeArray(data);
         }
         this.setIndex(index);
         this.setDtypes(dtypes);
@@ -119,17 +119,8 @@ export default class NDframe {
             const _data = (data).map((item) => {
                 return Object.values(item);
             });
-
-            let _columnNames;
-
-            if (columns) {
-                _columnNames = columns
-            } else {
-                _columnNames = Object.keys((data)[0]);
-            }
-
+            const _columnNames = columns ? columns : Object.keys((data)[0])
             this.loadArrayIntoNdframe({ data: _data, index, columns: _columnNames, dtypes });
-
         } else {
             const [_data, _colNames] = utils.getRowAndColValues(data);
             let _columnNames;
@@ -143,13 +134,12 @@ export default class NDframe {
         }
     }
 
-
     /**
      * Internal function to set the column names for the NDFrame. This function
      * performs a check to ensure that the column names are unique, and same length as the
      * number of columns in the data.
     */
-    private setColumnNames( columns? : string[]) {
+    private setColumnNames(columns?: string[]) {
         if (this._isSeries) {
             if (columns) {
                 if (this._data.length != 0 && columns.length != 1 && typeof columns != 'string') {
@@ -169,12 +159,12 @@ export default class NDframe {
                 }
                 this._columns = columns
             } else {
-                this._columns = math.range(0, this.shape[1] - 1).toArray().map((val) => `column_${val}`) //generate columns
+                this._columns = math.range(1, this.shape[1], true).toArray().map((val) => `column_${Number(val)}`) //generate columns
             }
         }
     }
 
-    get columns(): string[]{
+    get columns(): string[] {
         return this._columns
     }
 
@@ -185,7 +175,6 @@ export default class NDframe {
     */
     private setIndex(index: Array<string | number> | undefined): void {
         if (index) {
-
             if (this._data.length != 0 && index.length != this.shape[0]) {
                 throw new err.IndexLengthError(index, this.shape)
             }
@@ -194,7 +183,7 @@ export default class NDframe {
             }
             this._index = index
         } else {
-            this._index = math.range(0, this.shape[0] - 1).toArray() as  Array<string | number > //generate index
+            this._index = math.range(0, this.shape[0] - 1).toArray() as Array<string | number> //generate index
         }
     }
 
@@ -202,7 +191,7 @@ export default class NDframe {
      * Internal function to reset the index of the NDFrame using a range of indices.
     */
     resetIndex(): void {
-        this._index = math.range(0, this.shape[0] - 1).toArray() as Array<string | number >
+        this._index = math.range(0, this.shape[0] - 1).toArray() as Array<string | number>
     }
 
     /**
@@ -246,7 +235,6 @@ export default class NDframe {
         }
     }
 
-    
     /**
      * Returns the dtypes of the columns
     */
@@ -259,23 +247,22 @@ export default class NDframe {
      * while DataFrames have a dimension of 2.
     */
     get ndim(): number {
-        return this._isSeries ? 1 : 2 ;
+        return this._isSeries ? 1 : 2;
     }
 
-    tocsv(sep: string, header: boolean): string{
-        if (this._isSeries){
+    tocsv(sep: string, header: boolean): string {
+        if (this._isSeries) {
             const csvStr = this._data.join(sep);
             return csvStr
-        } else{
+        } else {
             const rows = this._data as ArrayType2D
             let csvStr = (header === true) ? `${this.columns.join(sep)}\n` : ""
-            for (let i = 0; i < rows.length; i++) {
-                const row = `${rows[i].join(sep)}\n`;
-                csvStr += row;
+            for (const item of rows) {
+                const rowstr = `${item.join(sep)}\n`;
+                csvStr += rowstr;
             }
             return csvStr
         }
-        
     }
 
 }
