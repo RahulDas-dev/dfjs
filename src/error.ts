@@ -1,4 +1,4 @@
-import { DATA_TYPES } from "./types/base";
+import { DATA_TYPES } from "./constants";
 
 
 export class IndexInvalidError extends Error {

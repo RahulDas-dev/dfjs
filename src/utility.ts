@@ -3,7 +3,6 @@ import { ArrayType1D, ArrayType2D } from "./types/base";
 import { tableconfig } from "./config/tableconfig";
 
 
-
 /**
  * Checks if array is 1D
  * @param arr The array 

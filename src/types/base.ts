@@ -2,8 +2,6 @@ import { ParseConfig } from 'papaparse';
 
 export type DTYPES = "float32" | "int32" | "string" | "boolean" | "undefined"
 
-export const DATA_TYPES = ["float32", "int32", "string", "boolean", "datetime", 'undefined'];
-
 export type ArrayType2D = Array<
     number[]
     | string[]

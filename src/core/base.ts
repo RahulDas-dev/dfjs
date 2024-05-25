@@ -1,5 +1,12 @@
-import { ArrayType1D, ArrayType2D, DATA_TYPES, LoadArrayDataType, LoadObjectDataType, NdframeInputDataType, DataFrameConfig } from "../types/base";
-import { CdataFrameConfig } from "../constants";
+import {
+    ArrayType1D,
+    ArrayType2D,
+    LoadArrayDataType,
+    LoadObjectDataType,
+    NdframeInputDataType,
+    DataFrameConfig
+} from "../types/base";
+import { DATA_FRAME_CONFIG, DATA_TYPES } from "../constants";
 import * as err from "../error";
 import * as math from 'mathjs'
 
@@ -16,14 +23,12 @@ export default class NDframe {
     protected _config: DataFrameConfig
 
     constructor({ isSeries, data, index, columns, dtypes, config }: NdframeInputDataType) {
-
         this._isSeries = isSeries
         this._data = []
         this._index = []
         this._columns = []
         this._dtypes = new Map<string, string>()
-        this._config = config ? { ...CdataFrameConfig, ...config } : CdataFrameConfig
-        //this._config = CdataFrameConfig
+        this._config = config ? { ...DATA_FRAME_CONFIG, ...config } : DATA_FRAME_CONFIG
 
         const data_ = data ?? []
         const columns_ = columns ?? []
