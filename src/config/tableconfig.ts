@@ -1,83 +1,68 @@
-import {BaseUserConfig, TableUserConfig} from 'table';
-import { ConfigsType } from '../types/base';
+import { BaseUserConfig, TableUserConfig } from 'table';
 
+
+export const BASE_TABLE_CONFIG = {
+    _tableMaxRow: 10,
+    _tableMaxColInConsole: 10,
+    _dtypeTestLim: 100,
+    _lowMemoryMode: false,
+}
 
 /**
  * Package wide configuration class
  */
 export class TableConfigs {
-    tableDisplayConfig: BaseUserConfig & TableUserConfig
-    tableMaxRow: number;
-    tableMaxColInConsole: number;
-    dtypeTestLim: number;
-    lowMemoryMode: boolean;
 
-    constructor(options: ConfigsType) {
-        const {
-            tableDisplayConfig,
-            tableMaxRow,
-            tableMaxColInConsole,
-            dtypeTestLim,
-            lowMemoryMode,
-        } = {
-            tableDisplayConfig: {},
-            tableMaxRow: 10,
-            tableMaxColInConsole: 10,
-            dtypeTestLim: 500,
-            lowMemoryMode: false,
-            ...options
-        }
-        this.tableDisplayConfig = tableDisplayConfig
-        this.tableMaxRow = tableMaxRow  // The maximum number of rows to display in console
-        this.tableMaxColInConsole = tableMaxColInConsole  // The maximum number of columns to display in console
-        this.dtypeTestLim = dtypeTestLim  // The number of rows to use when inferring data type
-        this.lowMemoryMode = lowMemoryMode  // Whether to use minimal memory or not.
+    constructor(
+        private _tableDisplayConfig: BaseUserConfig & TableUserConfig = {},
+        private _tableMaxRow = 10,
+        private _tableMaxColInConsole = 10,
+        private _dtypeTestLim = 100,
+        private _lowMemoryMode = false) {
+
     }
 
-    setTableDisplayConfig(config: BaseUserConfig & TableUserConfig) {
-        this.tableDisplayConfig = config;
+    set tableDisplayConfig(config: BaseUserConfig & TableUserConfig) {
+        this._tableDisplayConfig = config;
     }
 
-    get getTableDisplayConfig(): BaseUserConfig & TableUserConfig {
-        return this.tableDisplayConfig;
+    get tableDisplayConfig(): BaseUserConfig & TableUserConfig {
+        return this._tableDisplayConfig;
     }
 
-    setTableMaxColInConsole(val: number) {
-        this.tableMaxColInConsole = val;
+    set tableMaxColInConsole(val: number) {
+        this._tableMaxColInConsole = val;
     }
 
-    get getTableMaxColInConsole(): number {
-        return this.tableMaxColInConsole;
+    get tableMaxColInConsole(): number {
+        return this._tableMaxColInConsole;
     }
 
-    setMaxRow(val: number) {
-        this.tableMaxRow = val;
+    set tableMaxRow(val: number) {
+        this._tableMaxRow = val;
     }
 
-    get getMaxRow(): number {
-        return this.tableMaxRow;
+    get tableMaxRow(): number {
+        return this._tableMaxRow;
     }
 
-    get getDtypeTestLim(): number {
-        return this.dtypeTestLim;
+    get dtypeTestLim(): number {
+        return this._dtypeTestLim;
     }
 
-    setDtypeTestLim(val: number) {
-        this.dtypeTestLim = val;
+    set dtypeTestLim(val: number) {
+        this._dtypeTestLim = val;
     }
 
-    get isLowMemoryMode(): boolean {
-        return this.lowMemoryMode;
+    get lowMemoryMode(): boolean {
+        return this._lowMemoryMode;
     }
 
-    setIsLowMemoryMode(val: boolean) {
-        this.lowMemoryMode = val;
+    set lowMemoryMode(val: boolean) {
+        this._lowMemoryMode = val;
     }
 }
 
-export const BASE_TABLE_CONFIG = {
-    tableMaxRow: 10,
-    tableMaxColInConsole: 10,
-    dtypeTestLim: 20,
-    lowMemoryMode: false,
-}
+
+
+export const tableconfig = new TableConfigs()

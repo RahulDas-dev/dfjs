@@ -1,23 +1,20 @@
-import { BASE_TABLE_CONFIG, TableConfigs } from "./config/tableconfig";
-import { ArrayType1D, ArrayType2D } from "./types/base";
 
-const config = new TableConfigs(BASE_TABLE_CONFIG);
+import { ArrayType1D, ArrayType2D } from "./types/base";
+import { tableconfig } from "./config/tableconfig";
+
+
 
 /**
  * Checks if array is 1D
  * @param arr The array 
  */
-export function is1DArray(arr: ArrayType1D | ArrayType2D): boolean {
-    if (
-        typeof arr[0] == "number" ||
-        typeof arr[0] == "string" ||
-        typeof arr[0] == "boolean" ||
-        arr[0] === null
-    ) {
-        return true;
-    } else {
-        return false;
-    }
+export function isOneDArray<T>(array: T): boolean {
+    if (Array.isArray(array)) {
+        const checklimit = (array.length < tableconfig.dtypeTestLim) ? array.length : tableconfig.dtypeTestLim;
+        const arraySlice = array.slice(0, checklimit)
+        return arraySlice.every(item => Array.isArray(item) === false)
+    } else
+        return false
 }
 
 /**
@@ -44,7 +41,10 @@ export function isObject<T>(value: T): boolean {
  * @returns 
  */
 export function isEmpty<T>(value: T): boolean {
-    return value === undefined || value === null || (isNaN(value as number) && typeof value !== "string");
+    return value === undefined ||
+        value === null ||
+        (isNaN(value as number) && typeof value !== "string") ||
+        (typeof value === 'string' && value.trim() === '');
 }
 
 /**
@@ -56,16 +56,51 @@ export function isDate<T>(value: T): boolean {
     return value instanceof Date;
 }
 
+/**
+ * Sorts a Map object by the order of keys specified in an array.
+ *
+ * @param map - The Map object to sort.
+ * @param keys - An array of keys to sort the Map by. The order of keys in this array determines the order of entries in the sorted Map.
+ * @returns A new Map object with the same entries as the input Map, sorted by the order of keys specified in the input keys array.
+ *
+ * @example
+ * const map = new Map([
+ *   ['name', 'Alice'],
+ *   ['age', 30],
+ *   ['city', 'New York'],
+ * ]);
+ *
+ * const keys = ['age', 'name', 'city'];
+ *
+ * const sortedMap = sortMapByKeys(map, keys);
+ *
+ * // sortedMap is now a new Map object with the same entries as map,
+ * // but sorted by the order of keys specified in the keys array:
+ * // Map(3) { 'age' => 30, 'name' => 'Alice', 'city' => 'New York' }
+ */
+export function sortMapByKeys<T, P>(map: Map<T, P>, keys: T[]): Map<T, P> {
+    return new Map([...map.entries()].sort((a, b) => {
+        const keyA = a[0];
+        const keyB = b[0];
+        const indexA = keys.indexOf(keyA);
+        const indexB = keys.indexOf(keyB);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    }));
+}
+
 
 /**
  * Infer data type from an array or array of arrays
  * @param arr An array or array of arrays
  */
-export function inferDtype(arr: ArrayType1D | ArrayType2D) {
-    if (is1DArray(arr)) {
-        return [typeChecker(arr)];
+export function inferDtype(arr: ArrayType1D | ArrayType2D): string[] {
+    if (isOneDArray(arr)) {
+        return [typeChecker(arr as ArrayType1D)];
     } else {
-        const arrSlice = transposeArray(arr.slice(0, config.getDtypeTestLim))
+        const arrSlice = transposeArray(arr.slice(0, tableconfig.dtypeTestLim)) as ArrayType2D
         const dtypes = arrSlice.map((innerArr) => {
             return typeChecker(innerArr);
         });
@@ -74,85 +109,59 @@ export function inferDtype(arr: ArrayType1D | ArrayType2D) {
 }
 
 /**
- * Private type checker used by inferDtype function
- * @param arr The array
+ * Infers the data type of an array based on its contents.
+ * 
+ * The function iterates over a limited number of elements in the array (defined by `config.dtypeTestLim`)
+ * and counts the occurrences of each data type (boolean, empty, datetime, float32, int32, string).
+ * It then returns the most common data type found, or 'undefined' if all elements are empty.
+ * 
+ * @param {ArrayType1D} array - The input array to infer the data type from.
+ * @returns {string} The inferred data type of the array.
+ * 
+ * @example
+ * const array = [1, 2, 3, 4, 5];
+ * const dtype = typeChecker(array);
+ * console.log(dtype); // Output: 'int32'
  */
-function typeChecker(arr: ArrayType1D | ArrayType2D) {
-    let dtypes: string;
-    let lim: number;
-    const intTracker: Array<boolean> = [];
-    const floatTracker: Array<boolean> = [];
-    const stringTracker: Array<boolean> = [];
-    const boolTracker: Array<boolean> = [];
-    const dateTracker: Array<boolean> = [];
 
-    if (arr.length < config.getDtypeTestLim) {
-        lim = arr.length;
-    } else {
-        lim = config.getDtypeTestLim;
-    }
+function typeChecker(array: ArrayType1D): string {
+    const typeCountr = new Map<string, number>()
 
-    const arrSlice = arr.slice(0, lim);
+    const checklimit = (array.length < tableconfig.dtypeTestLim) ? array.length : tableconfig.dtypeTestLim;
 
-    for (let i = 0; i < lim; i++) {
-        const ele = arrSlice[i];
+    for (let i = 0; i < checklimit; i++) {
+        const ele = array[i];
         if (typeof ele == "boolean") {
-            floatTracker.push(false);
-            intTracker.push(false);
-            stringTracker.push(false);
-            boolTracker.push(true);
-            dateTracker.push(false);
+            typeCountr.set('boolean', (typeCountr.get('boolean') ?? 0) + 1)
         } else if (isEmpty(ele)) {
-            floatTracker.push(true);
-            intTracker.push(false);
-            stringTracker.push(false);
-            boolTracker.push(false);
-            dateTracker.push(false);
+            typeCountr.set('empty', (typeCountr.get('empty') ?? 0) + 1)
         } else if (isDate(ele)) {
-            floatTracker.push(false);
-            intTracker.push(false);
-            stringTracker.push(false);
-            boolTracker.push(false);
-            dateTracker.push(true);
+            typeCountr.set('datetime', (typeCountr.get('datetime') ?? 0) + 1)
         } else if (!isNaN(Number(ele))) {
             if ((ele as unknown as string).toString().includes(".")) {
-                floatTracker.push(true);
-                intTracker.push(false);
-                stringTracker.push(false);
-                boolTracker.push(false);
-                dateTracker.push(false);
+                typeCountr.set('float32', (typeCountr.get('float32') ?? 0) + 1)
             } else {
-                floatTracker.push(false);
-                intTracker.push(true);
-                stringTracker.push(false);
-                boolTracker.push(false);
-                dateTracker.push(false);
+                typeCountr.set('int32', (typeCountr.get('int32') ?? 0) + 1)
             }
         } else {
-            floatTracker.push(false);
-            intTracker.push(false);
-            stringTracker.push(true);
-            boolTracker.push(false);
-            dateTracker.push(false);
+            typeCountr.set('string', (typeCountr.get('string') ?? 0) + 1)
         }
     }
-
-    const even = (ele: number | string | boolean) => ele == true;
-
-    if (stringTracker.some(even)) {
-        dtypes = "string";
-    } else if (floatTracker.some(even)) {
-        dtypes = "float32";
-    } else if (intTracker.some(even)) {
-        dtypes = "int32";
-    } else if (boolTracker.some(even)) {
-        dtypes = "boolean";
-    } else if (dateTracker.some(even)) {
-        dtypes = "datetime";
-    } else {
-        dtypes = "undefined";
-    }
-    return dtypes;
+    if ((typeCountr.get('empty') ?? 0) == checklimit)
+        return 'undefined'
+    typeCountr.delete('empty')
+    if ((typeCountr.get('string') ?? 0) > 0)
+        return 'string'
+    if ((typeCountr.get('float32') ?? 0) > 0)
+        return 'float32'
+    if ((typeCountr.get('int32') ?? 0) > 0)
+        return 'int32'
+    if ((typeCountr.get('boolean') ?? 0) > 0)
+        return 'boolean'
+    if ((typeCountr.get('datetime') ?? 0) > 0)
+        return 'datetime'
+    const maxType = [...typeCountr].reduce((a, b) => a[1] > b[1] ? a : b)[0];
+    return maxType;
 }
 
 
@@ -164,23 +173,21 @@ function typeChecker(arr: ArrayType1D | ArrayType2D) {
 export function transposeArray(arr: ArrayType1D | ArrayType2D): ArrayType1D | ArrayType2D { //old name: __get_col_values
     if (arr.length === 0) return arr
 
-    const rowLen: number = arr.length;
     if (Array.isArray(arr[0])) {
+        const rowLen: number = arr.length;
         const colLen: number = arr[0].length;
-        const newArr = [];
-
-        for (let i = 0; i <= colLen - 1; i++) {
+        const transposed = [];
+        for (let i = 0; i < colLen; i++) {
             const temp = [];
             for (let j = 0; j < rowLen; j++) {
-                const _elem = (arr as any)[j][i]
+                const _elem = (arr as ArrayType2D)[j][i]
                 temp.push(_elem);
             }
-            newArr.push(temp);
+            transposed.push(temp);
         }
-        return newArr;
-    } else {
+        return transposed;
+    } else
         return arr;
-    }
 }
 
 /**
@@ -190,14 +197,12 @@ export function transposeArray(arr: ArrayType1D | ArrayType2D): ArrayType1D | Ar
 export function getRowAndColValues(obj: object): [ArrayType1D | ArrayType2D, string[]] {
     const colNames = Object.keys(obj);
     const colData = Object.values(obj);
-    const firstColLen = colData[0].length;
+    const firstColLen = Array.isArray(colData[0]) ? colData[0].length : 1
 
-    colData.forEach((cdata) => {
-        if (cdata.length != firstColLen) {
-            throw Error("Length Error: Length of columns must be the same!");
-        }
-    });
-
+    const hasSameColLen = colData.map((item) => Array.isArray(item) ? item.length : 1).every((ln) => ln === firstColLen)
+    if (!hasSameColLen) {
+        throw Error("Length Error: Length of columns must be the same!");
+    }
     const rowsArr = transposeArray(colData)
     return [rowsArr, colNames];
-}
+}   

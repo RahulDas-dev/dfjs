@@ -40,6 +40,19 @@
         align-items: center;
         width: 100%;
       }
+      .file-label {
+        padding-left: 10px; /* adjust the value as needed */
+        font-family: monospace;
+        color: #17202A;
+        background-color: #F8F9F9;
+        border: 1px solid #ccc;
+        border-radius: 3px 0px 0px 3px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40%;
+        height: 38px;
+      }
       input[type="file"]{
         width: 40%;
         height: 38px;
@@ -52,11 +65,10 @@
         color: #17202A;
         font-family: monospace;
       }
-      input[type="file"]::file-selector-button{
+      input[type="file"]::-webkit-file-upload-button{
         border-radius: 3px 0px 0px 3px;
         border: 1px solid rgba(0, 0, 0, 0.16);
         height: 100%;
-        width: 15%;
         transition: 1s;
         outline: none;
         background-color: #242424;
@@ -65,10 +77,10 @@
         box-shadow: none;
         margin: 0;
       }
-      input[type="file"]::file-selector-button:hover {
+      input[type="file"]::-webkit-file-upload-button:hover {
         background-color: #343434;
       }
-      input[type="file"]::file-selector-button:active {
+      input[type="file"]::-webkit-file-upload-button:active {
         background-color: #444444;
       }
       button {

@@ -1,14 +1,15 @@
 import { DATA_TYPES } from "./types/base";
 
 
-export class ColumnNamesLengthError extends Error {
-    constructor(columns: string[], shape: Array<number>) {
-        const message = `ParamError: Column names length mismatch. You provided a column of length ${columns.length} but Ndframe columns has length of ${shape[1]}`
+export class IndexInvalidError extends Error {
+    constructor() {
+        const message = `IndexError: Index must be of type Array of < String | number > type`
         super(message);
         this.name = this.constructor.name;
-        Object.setPrototypeOf(this, ColumnNamesLengthError.prototype);
+        Object.setPrototypeOf(this, IndexInvalidError.prototype);
     }
 }
+
 
 export class IndexLengthError extends Error {
     constructor(index: Array<string | number>, shape: Array<number>) {
@@ -19,12 +20,32 @@ export class IndexLengthError extends Error {
     }
 }
 
+
 export class IndexDuplicateError extends Error {
     constructor() {
         const message = `IndexError: Row index must contain unique values`
         super(message);
         this.name = this.constructor.name;
         Object.setPrototypeOf(this, IndexLengthError.prototype);
+    }
+}
+
+export class ColumnInvalidError extends Error {
+    constructor() {
+        const message = `ParamError: Columns must be of type Array of < String > Type`
+        super(message);
+        this.name = this.constructor.name;
+        Object.setPrototypeOf(this, ColumnInvalidError.prototype);
+    }
+}
+
+
+export class ColumnNamesLengthError extends Error {
+    constructor(columns: string[], shape: Array<number>) {
+        const message = `ParamError: Column names length mismatch. You provided a column of length ${columns.length} but Ndframe columns has length of ${shape[1]}`
+        super(message);
+        this.name = this.constructor.name;
+        Object.setPrototypeOf(this, ColumnNamesLengthError.prototype);
     }
 }
 
@@ -35,6 +56,15 @@ export class DtypeWithoutColumnError extends Error {
         super(message);
         this.name = this.constructor.name;
         Object.setPrototypeOf(this, IndexLengthError.prototype);
+    }
+}
+
+export class DtypesInvalidError extends Error {
+    constructor() {
+        const message = `DtypeError: Dtypes must be of type Array of < String > Type`
+        super(message);
+        this.name = this.constructor.name;
+        Object.setPrototypeOf(this, DtypesInvalidError.prototype);
     }
 }
 
