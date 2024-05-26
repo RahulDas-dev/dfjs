@@ -1,6 +1,6 @@
 import { ParseConfig } from 'papaparse';
 
-export type DTYPES = "float32" | "int32" | "string" | "boolean" | "undefined"
+export type Dtypes = "float" | "int" | "string" | "boolean" | "datetime"
 
 export type ArrayType2D = Array<
     number[]
@@ -25,7 +25,7 @@ export interface BaseDataOptionType {
     type?: number;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Array<string>
+    dtypes?: Dtypes
     config?: DataFrameConfig;
 }
 
@@ -42,19 +42,19 @@ export interface CsvOutputOptionsBrowser {
 
 export interface NdframeInputDataType {
     isSeries: boolean;
-    data: ArrayType1D | ArrayType2D | Array<object> | object;
+    data?: ArrayType1D | ArrayType2D | Array<object> | object;
     type?: number;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Array<string>
+    dtypes?: Dtypes
     config?: Partial<DataFrameConfig>;
 }
 
 export interface LoadArrayDataType {
-    data: ArrayType1D | ArrayType2D
+    data?: ArrayType1D | ArrayType2D
     index: Array<string | number>
-    columns: string[]
-    dtypes: Array<string>
+    columns?: string[]
+    dtypes?: Dtypes
 }
 
 export interface LoadObjectDataType {
@@ -62,5 +62,5 @@ export interface LoadObjectDataType {
     data: object | Array<object>
     index: Array<string | number>
     columns: string[]
-    dtypes: Array<string>
+    dtypes?: Dtypes
 }

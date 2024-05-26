@@ -1,5 +1,5 @@
 
-import { ArrayType1D, ArrayType2D } from "./types/base";
+import { ArrayType1D, ArrayType2D, Dtypes } from "./types/base";
 import { tableconfig } from "./config/tableconfig";
 
 
@@ -32,6 +32,21 @@ export function isString<T>(value: T): boolean {
  */
 export function isObject<T>(value: T): boolean {
     return value && typeof value === "object" && value.constructor && value.constructor.name === "Object";
+}
+
+/**
+ * Checks if value is an object Array.
+ * @param data The value to check.
+ * @returns 
+ */
+export function isObjectArray<T>(data: T): boolean {
+    if (Array.isArray(data)) {
+        if (data.length == 0)
+            return false
+        const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
+        return data.slice(0, checklimit).every((row) => isObject(row) === true)
+    }
+    return false
 }
 
 /**
@@ -93,13 +108,14 @@ export function sortMapByKeys<T, P>(map: Map<T, P>, keys: T[]): Map<T, P> {
 
 /**
  * Infer data type from an array or array of arrays
- * @param arr An array or array of arrays
+ * @param data An array or array of arrays
  */
-export function inferDtype(arr: ArrayType1D | ArrayType2D): string[] {
-    if (isOneDArray(arr)) {
-        return [typeChecker(arr as ArrayType1D)];
+export function inferDtype(data: ArrayType1D | ArrayType2D): string[] {
+    if (isOneDArray(data)) {
+        return [typeChecker(data as ArrayType1D)];
     } else {
-        const arrSlice = transposeArray(arr.slice(0, tableconfig.dtypeTestLim)) as ArrayType2D
+        const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
+        const arrSlice = transposeArray(data.slice(0, checklimit)) as ArrayType2D
         const dtypes = arrSlice.map((innerArr) => {
             return typeChecker(innerArr);
         });
@@ -126,10 +142,7 @@ export function inferDtype(arr: ArrayType1D | ArrayType2D): string[] {
 function typeChecker(array: ArrayType1D): string {
     const typeCountr = new Map<string, number>()
 
-    const checklimit = (array.length < tableconfig.dtypeTestLim) ? array.length : tableconfig.dtypeTestLim;
-
-    for (let i = 0; i < checklimit; i++) {
-        const ele = array[i];
+    for (const ele of array) {
         if (typeof ele == "boolean") {
             typeCountr.set('boolean', (typeCountr.get('boolean') ?? 0) + 1)
         } else if (isEmpty(ele)) {
@@ -138,23 +151,23 @@ function typeChecker(array: ArrayType1D): string {
             typeCountr.set('datetime', (typeCountr.get('datetime') ?? 0) + 1)
         } else if (!isNaN(Number(ele))) {
             if ((ele as unknown as string).toString().includes(".")) {
-                typeCountr.set('float32', (typeCountr.get('float32') ?? 0) + 1)
+                typeCountr.set('float', (typeCountr.get('float') ?? 0) + 1)
             } else {
-                typeCountr.set('int32', (typeCountr.get('int32') ?? 0) + 1)
+                typeCountr.set('int', (typeCountr.get('int') ?? 0) + 1)
             }
         } else {
             typeCountr.set('string', (typeCountr.get('string') ?? 0) + 1)
         }
     }
-    if ((typeCountr.get('empty') ?? 0) == checklimit)
+    if ((typeCountr.get('empty') ?? 0) == array.length)
         return 'undefined'
     typeCountr.delete('empty')
     if ((typeCountr.get('string') ?? 0) > 0)
         return 'string'
-    if ((typeCountr.get('float32') ?? 0) > 0)
-        return 'float32'
-    if ((typeCountr.get('int32') ?? 0) > 0)
-        return 'int32'
+    if ((typeCountr.get('float') ?? 0) > 0)
+        return 'float'
+    if ((typeCountr.get('int') ?? 0) > 0)
+        return 'int'
     if ((typeCountr.get('boolean') ?? 0) > 0)
         return 'boolean'
     if ((typeCountr.get('datetime') ?? 0) > 0)
@@ -204,4 +217,35 @@ export function getRowAndColValues(obj: object): [ArrayType1D | ArrayType2D, str
     }
     const rowsArr = transposeArray(colData)
     return [rowsArr, colNames];
-}   
+}
+
+
+export function castDtypes(data: ArrayType1D | ArrayType2D, dtype: Dtypes): ArrayType1D | ArrayType2D {
+    let data_
+    if (isOneDArray(data)) {
+        if (dtype === 'string') {
+            data_ = (data as ArrayType1D).map(num => isEmpty(num) ? '' : num.toString());
+        } else if (dtype === 'int') {
+            data_ = (data as ArrayType1D).map(num => Math.floor(num));
+        } else if (dtype === 'float') {
+            data_ = (data as ArrayType1D).map(num => Number(num));
+        } else if (dtype === 'boolean') {
+            data_ = (data as ArrayType1D).map(num => Boolean(num));
+        } else if (dtype === 'datetime') {
+            data_ = (data as ArrayType1D).map(num => new Date(Date.parse(num)));
+        }
+    } else {
+        if (dtype === 'string') {
+            data_ = (data as ArrayType2D).map(row => row.map(num => num.toString()));
+        } else if (dtype === 'int') {
+            data_ = (data as ArrayType2D).map(row => row.map(num => Math.floor(num)));
+        } else if (dtype === 'float') {
+            data_ = (data as ArrayType2D).map(row => row.map(num => Number(num)));
+        } else if (dtype === 'boolean') {
+            data_ = (data as ArrayType2D).map(row => row.map(num => Boolean(num)));
+        } else if (dtype === 'datetime') {
+            data_ = (data as ArrayType2D).map(row => row.map(num => new Date(Date.parse(num))));
+        }
+    }
+    return data_ as ArrayType1D | ArrayType2D
+}

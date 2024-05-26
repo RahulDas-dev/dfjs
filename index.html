@@ -68,7 +68,6 @@
         background-color: #424242;
         border: 1px solid #424242;
       }
-
       input[type="file"]::file-selector-button:active {
         background-color: #141414;
       }
@@ -90,14 +89,12 @@
         top: 14px;
         position: absolute;
         pointer-events: none;
-        /*   top: 10px; */
         left: 16px;
         height: 20px;
         width: 20px;
         content: "";
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3h-2zM7 9l1.41 1.41L11 7.83V16h2V7.83l2.59 2.58L17 9l-5-5-5 5z'/%3E%3C/svg%3E");
       }
-
       button {
         border-radius: 0px 3px 3px 0px;
         border: 1px solid transparent;
@@ -126,8 +123,8 @@
               class="file-input"/>
       <button id="reset-btn">Reset</button>        
     </div>
-    <div class="plot-area">
-    </div>  
+    <div class="console-area"></div>
+    <div class="plot-area"></div>
     <!-- <script type="module" src="/dist/index.ts"></script> -->
     <script  type="module">
       import { readCSV } from "dfjs"
@@ -155,6 +152,3 @@
     </script>
   </body>
 </html>
-
-
-

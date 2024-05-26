@@ -4,7 +4,8 @@ import {
     LoadArrayDataType,
     LoadObjectDataType,
     NdframeInputDataType,
-    DataFrameConfig
+    DataFrameConfig,
+    Dtypes
 } from "../types/base";
 import { DATA_FRAME_CONFIG, DATA_TYPES } from "../constants";
 import * as err from "../error";
@@ -30,23 +31,15 @@ export default class NDframe {
         this._dtypes = new Map<string, string>()
         this._config = config ? { ...DATA_FRAME_CONFIG, ...config } : DATA_FRAME_CONFIG
 
-        const data_ = data ?? []
-        const columns_ = columns ?? []
-        const dtypes_ = dtypes ?? []
         const index_ = index ?? []
-
-        if (columns_.length === 0 && dtypes_.length !== 0)
-            throw new err.DtypeWithoutColumnError();
-        if (Array.isArray(data)) {
-            if (utils.isObject(data[0]))
-                // List of Object 
-                this.loadObjectIntoNdframe({ data: data_, type: 1, index: index_, columns: columns_, dtypes: dtypes_ })
-            else
-                // ArrayType2D | ArrayType1D
-                this.loadArrayIntoNdframe({ data: (data_ as ArrayType2D | ArrayType1D), index: index_, columns: columns_, dtypes: dtypes_ });
-        } else if (utils.isObject(data))
-            // Object 
-            this.loadObjectIntoNdframe({ data: data_, type: 2, index: index_, columns: columns_, dtypes: dtypes_ });
+        if (data === undefined || data === null)
+            this.loadArrayIntoNdframe({ data, index: index_, columns, dtypes });
+        else if (utils.isObjectArray(data))
+            this.loadObjectIntoNdframe({ data, type: 1, index: index_, columns: columns ?? [], dtypes })
+        else if (Array.isArray(data))
+            this.loadArrayIntoNdframe({ data, index: index_, columns, dtypes });
+        else if (utils.isObject(data))
+            this.loadObjectIntoNdframe({ data, type: 2, index: index_, columns: columns ?? [], dtypes });
         else
             throw new Error("File format not supported!");
     }
@@ -101,10 +94,11 @@ export default class NDframe {
     */
     private loadArrayIntoNdframe({ data, index, columns, dtypes }: LoadArrayDataType): void {
         // this.$data = utils.replaceUndefinedWithNaN(data, this.$isSeries);
-        this._data = data
+        if (data === undefined || data === null)
+            this._data = []
+        else
+            this._data = data
         if (!this._config.lowMemoryMode) {
-            //In NOT low memory mode, we transpose the array and save in column format.
-            //This makes column data retrieval run in constant time
             // this._dataIncolumnFormat = utils.transposeArray(data);
         }
         this.setIndex(index);
@@ -129,13 +123,13 @@ export default class NDframe {
             if (Array.isArray(data)) {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 const _data = (data).map((item) => Object.values(item)) as ArrayType1D | ArrayType2D;
-                let _columnNames = (typeof columns == 'undefined') ? columns : Object.keys(data[0] as object)
+                let _columnNames = (columns === undefined) ? columns : Object.keys(data[0] as object)
                 _columnNames = (columns.length > 0) ? columns : _columnNames
                 this.loadArrayIntoNdframe({ data: _data, index, columns: _columnNames, dtypes });
             }
             else
                 throw Error('Not a Valid Data Type')
-        } else {
+        } else if (type === 2) {
             if (utils.isObject(data)) {
                 const [_data, _colNames] = utils.getRowAndColValues(data);
                 const _columnNames = (columns.length > 0) ? columns : _colNames
@@ -144,6 +138,8 @@ export default class NDframe {
             else
                 throw Error('Not a Valid Data Type')
         }
+        else
+            throw Error('Not a Valid Data Type')
     }
 
     /**
@@ -151,11 +147,12 @@ export default class NDframe {
      * performs a check to ensure that the column names are unique, and same length as the
      * number of columns in the data.
     */
-    private setColumnNames(columns: string[] = []) {
+    private setColumnNames(columns?: string[]) {
+        columns = columns ?? []
         if (!Array.isArray(columns))
             throw new err.ColumnInvalidError()
         if (this._isSeries) {
-            if (columns) {
+            if (columns.length > 0) {
                 if (this._data.length != 0 && columns.length != 1 && typeof columns != 'string') {
                     throw new err.ColumnNamesLengthError(columns, this.shape)
                 }
@@ -163,26 +160,24 @@ export default class NDframe {
             } else {
                 this._columns = ["0"]
             }
-        } else {
+        }
+        else {
             if (columns.length > 0) {
                 if (this._data.length != 0 && columns.length != this.column_count) {
-                    throw new err.ColumnNamesLengthError(columns, this.shape)
-                }
-                if (Array.from(new Set(columns)).length !== columns.length) {
                     throw new err.ColumnNamesLengthError(columns, this.shape)
                 }
                 const colset = new Map<string, number>()
                 for (const item of columns) {
                     if (colset.has(item)) {
-                        const count = colset.get(item) ?? 0 + 1
-                        colset.set(item, count)
+                        colset.set(item, (colset.get(item) ?? 0) + 1)
                     } else {
-                        colset.set(item, 0)
+                        colset.set(item, 1)
                     }
                 }
                 for (const item of columns) {
                     const count = colset.get(item) ?? 0
-                    const colname: string = (count > 0) ? `${item}_${count}` : item
+                    const colname: string = (count > 1) ? `${item}_${count}` : item
+                    // console.log(`HI ${colname}`)
                     this._columns.push(colname)
                 }
             } else {
@@ -227,41 +222,34 @@ export default class NDframe {
      * Internal function to set the Dtypes of the NDFrame from an array. This function
      * performs the necessary checks.
     */
-    private setDtypes(dtypes: Array<string> = []): void {
-        if (!Array.isArray(dtypes))
-            throw new err.DtypesInvalidError()
+    private setDtypes(dtypes: Dtypes | 'infer' = 'infer'): void {
         const _dtypes = new Map<string, string>()
         let _dtypes_extracted = new Array<string>()
         if (this._isSeries) {
-            if (dtypes) {
-                if (this._data.length != 0 && dtypes.length != 1) {
-                    throw new err.DtypesLengthError(dtypes, this.shape)
-                }
-                if (!(DATA_TYPES.includes(`${dtypes[0]}`))) {
-                    throw new err.DtypeNotSupportedError(dtypes[0])
-                }
-                _dtypes_extracted = [dtypes[0]]
-            } else {
+            if (dtypes == 'infer') {
                 _dtypes_extracted = utils.inferDtype(this._data)
+            } else {
+                if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
+                    this._data = utils.castDtypes(this._data, dtypes)
+                    _dtypes_extracted = [dtypes]
+                }
+                else
+                    throw new err.DtypesInvalidError()
             }
         } else {
-            if (dtypes.length > 0) {
-                if (this._data.length != 0 && dtypes.length != this.column_count) {
-                    throw new err.DtypesLengthError(dtypes, this.shape)
+            if (this._data.length == 0)
+                _dtypes_extracted = []
+            else {
+                if (dtypes == 'infer')
+                    _dtypes_extracted = utils.inferDtype(this._data)
+                else {
+                    if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
+                        this._data = utils.castDtypes(this._data, dtypes)
+                        _dtypes_extracted = new Array<Dtypes>(this.column_count).fill(dtypes)
+                    }
+                    else
+                        throw new err.DtypesInvalidError()
                 }
-                if (this._data.length == 0 && dtypes.length == 0) {
-                    const col_name = this._columns[0]
-                    this._dtypes.set(col_name, dtypes[0])
-                } else {
-                    dtypes.forEach((dtype) => {
-                        if (!(DATA_TYPES.includes(dtype))) {
-                            throw new err.DtypeNotSupportedError(dtype)
-                        }
-                    })
-                    _dtypes_extracted = dtypes
-                }
-            } else {
-                _dtypes_extracted = utils.inferDtype(this._data)
             }
         }
         for (let i = 0; i < _dtypes_extracted.length; i++) {
