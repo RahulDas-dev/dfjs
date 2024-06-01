@@ -39,7 +39,6 @@ describe(('NDFrame Testing'), function () {
       assert.deepEqual(df.shape, [0, 0]);
       assert.equal(df.ndim, 2);
     })
-
     test('interface testing with list of empty object and list of Columns', function () {
 
       const df = new DataFrame([{}, {}], { columns: ["beta", "gama"] });

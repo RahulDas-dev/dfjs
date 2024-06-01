@@ -5,13 +5,26 @@ import { tableconfig } from "./config/tableconfig";
 
 /**
  * Checks if array is 1D
- * @param arr The array 
+ * @param data The array 
  */
-export function isOneDArray<T>(array: T): boolean {
-    if (Array.isArray(array)) {
-        const checklimit = (array.length < tableconfig.dtypeTestLim) ? array.length : tableconfig.dtypeTestLim;
-        const arraySlice = array.slice(0, checklimit)
+export function isOneDArray<T>(data: T): boolean {
+    if (Array.isArray(data)) {
+        const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
+        const arraySlice = data.slice(0, checklimit)
         return arraySlice.every(item => Array.isArray(item) === false)
+    } else
+        return false
+}
+
+/**
+ * Checks if array is 2D
+ * @param data The array 
+ */
+export function istwoDArray<T>(data: T): boolean {
+    if (Array.isArray(data)) {
+        const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
+        const arraySlice = data.slice(0, checklimit)
+        return arraySlice.every(item => Array.isArray(item) === true)
     } else
         return false
 }
@@ -139,14 +152,15 @@ export function inferDtype(data: ArrayType1D | ArrayType2D): string[] {
  * console.log(dtype); // Output: 'int32'
  */
 
-function typeChecker(array: ArrayType1D): string {
-    const typeCountr = new Map<string, number>()
+function typeChecker(array: ArrayType1D): Dtypes {
+    const typeCountr = new Map<Dtypes | 'empty', number>()
 
     for (const ele of array) {
         if (typeof ele == "boolean") {
             typeCountr.set('boolean', (typeCountr.get('boolean') ?? 0) + 1)
         } else if (isEmpty(ele)) {
-            typeCountr.set('empty', (typeCountr.get('empty') ?? 0) + 1)
+            // typeCountr.set('empty', (typeCountr.get('empty') ?? 0) + 1)
+            continue
         } else if (isDate(ele)) {
             typeCountr.set('datetime', (typeCountr.get('datetime') ?? 0) + 1)
         } else if (!isNaN(Number(ele))) {
@@ -160,7 +174,7 @@ function typeChecker(array: ArrayType1D): string {
         }
     }
     if ((typeCountr.get('empty') ?? 0) == array.length)
-        return 'undefined'
+        return 'string'
     typeCountr.delete('empty')
     if ((typeCountr.get('string') ?? 0) > 0)
         return 'string'
@@ -173,7 +187,7 @@ function typeChecker(array: ArrayType1D): string {
     if ((typeCountr.get('datetime') ?? 0) > 0)
         return 'datetime'
     const maxType = [...typeCountr].reduce((a, b) => a[1] > b[1] ? a : b)[0];
-    return maxType;
+    return maxType as Dtypes;
 }
 
 
@@ -248,4 +262,14 @@ export function castDtypes(data: ArrayType1D | ArrayType2D, dtype: Dtypes): Arra
         }
     }
     return data_ as ArrayType1D | ArrayType2D
+}
+
+
+/**
+ * Converts a 2D array of array to 1D array for Series Class
+ * @param data The array to convert.
+ */
+export function convert2DArrayToSeriesArray(data: ArrayType2D): Array<string> {
+    const newArr = data.map((val) => isObject(val) ? JSON.stringify(val) : `${val}`);
+    return newArr;
 }

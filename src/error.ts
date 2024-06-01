@@ -30,12 +30,22 @@ export class IndexDuplicateError extends Error {
     }
 }
 
-export class ColumnInvalidError extends Error {
+export class ColumnTypeInvalidError extends Error {
     constructor() {
         const message = `ParamError: Columns must be of type Array of < String > Type`
         super(message);
         this.name = this.constructor.name;
-        Object.setPrototypeOf(this, ColumnInvalidError.prototype);
+        Object.setPrototypeOf(this, ColumnTypeInvalidError.prototype);
+    }
+}
+
+
+export class ColumnNotFoundError extends Error {
+    constructor(column: string) {
+        const message = `ParamError: Column : ${column} not Found `
+        super(message);
+        this.name = this.constructor.name;
+        Object.setPrototypeOf(this, ColumnNotFoundError.prototype);
     }
 }
 

@@ -5,7 +5,8 @@ import {
     LoadObjectDataType,
     NdframeInputDataType,
     DataFrameConfig,
-    Dtypes
+    Dtypes,
+    NDframeInterface
 } from "../types/base";
 import { DATA_FRAME_CONFIG, DATA_TYPES } from "../constants";
 import * as err from "../error";
@@ -14,21 +15,21 @@ import * as math from 'mathjs'
 import * as utils from '../utility'
 
 
-export default class NDframe {
-    protected _isSeries: boolean
+export default class NDframe implements NDframeInterface {
+    protected readonly _isSeries: boolean
     protected _data: ArrayType2D | ArrayType1D
     // protected _dataIncolumnFormat: ArrayType1D | ArrayType2D
     protected _index: Array<string | number>
     protected _columns: string[]
-    protected _dtypes: Map<string, string>
-    protected _config: DataFrameConfig
+    protected _dtypes: Map<string, Dtypes>
+    protected readonly _config: DataFrameConfig
 
     constructor({ isSeries, data, index, columns, dtypes, config }: NdframeInputDataType) {
         this._isSeries = isSeries
         this._data = []
         this._index = []
         this._columns = []
-        this._dtypes = new Map<string, string>()
+        this._dtypes = new Map<string, Dtypes>()
         this._config = config ? { ...DATA_FRAME_CONFIG, ...config } : DATA_FRAME_CONFIG
 
         const index_ = index ?? []
@@ -122,18 +123,23 @@ export default class NDframe {
         if (type === 1) {
             if (Array.isArray(data)) {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                const _data = (data).map((item) => Object.values(item)) as ArrayType1D | ArrayType2D;
-                let _columnNames = (columns === undefined) ? columns : Object.keys(data[0] as object)
-                _columnNames = (columns.length > 0) ? columns : _columnNames
-                this.loadArrayIntoNdframe({ data: _data, index, columns: _columnNames, dtypes });
+                const _data = data.filter(item => Object.keys(item).length !== 0).map((item) => Object.values(item)) as ArrayType1D | ArrayType2D;
+                if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
+                    columns = Object.keys(data[0] as object)
+                }
+
+                this.loadArrayIntoNdframe({ data: _data, index, columns, dtypes });
             }
             else
                 throw Error('Not a Valid Data Type')
         } else if (type === 2) {
             if (utils.isObject(data)) {
                 const [_data, _colNames] = utils.getRowAndColValues(data);
-                const _columnNames = (columns.length > 0) ? columns : _colNames
-                this.loadArrayIntoNdframe({ data: _data, index, columns: _columnNames, dtypes });
+                if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
+                    columns = _colNames
+                }
+                // const _columnNames = (columns.length > 0) ? columns : _colNames
+                this.loadArrayIntoNdframe({ data: _data, index, columns, dtypes });
             }
             else
                 throw Error('Not a Valid Data Type')
@@ -150,7 +156,7 @@ export default class NDframe {
     private setColumnNames(columns?: string[]) {
         columns = columns ?? []
         if (!Array.isArray(columns))
-            throw new err.ColumnInvalidError()
+            throw new err.ColumnTypeInvalidError()
         if (this._isSeries) {
             if (columns.length > 0) {
                 if (this._data.length != 0 && columns.length != 1 && typeof columns != 'string') {
