@@ -20,14 +20,14 @@ export default class DataFrame extends NDframe {
      * @param column Optional, a single column name to map
      */
     private setInternalColumnDataProperty(column?: string) {
-        const self = this;
+        const that = this;
         if (column && typeof column === "string") {
-            Object.defineProperty(self, column, {
+            Object.defineProperty(that, column, {
                 get() {
-                    return self.getColumnData(column)
+                    return that.getColumnData(column)
                 },
                 set(arr: ArrayType1D | Series) {
-                    self.setColumnData(column, arr);
+                    that.setColumnData(column, arr);
                 }
             })
         } else {
@@ -36,10 +36,10 @@ export default class DataFrame extends NDframe {
                 const column = col;
                 Object.defineProperty(this, column, {
                     get() {
-                        return self.getColumnData(column)
+                        return that.getColumnData(column)
                     },
                     set(arr: ArrayType1D | Series) {
-                        self.setColumnData(column, arr);
+                        that.setColumnData(column, arr);
                     }
                 })
             }
@@ -64,7 +64,8 @@ export default class DataFrame extends NDframe {
         const config = { ...this._config }
         const data: ArrayType1D = []
         for (const row of this._data) {
-            data.push(row[columnIndex])
+            if (Array.isArray(row))
+                data.push(row[columnIndex])
         }
         if (returnSeries) {
             return new Series(data, {
@@ -88,11 +89,9 @@ export default class DataFrame extends NDframe {
         const columnIndex = this._columns.indexOf(column)
 
         if (columnIndex == -1) {
-            throw new Error(`ParamError: column ${column} not found in ${this._columns}. If you need to add a new column, use the df.addColumn method. `)
+            throw new Error(`ParamError: column ${column} not found in ${this._columns.join(', ')}. If you need to add a new column, use the df.addColumn method. `)
         }
-
         let colunmValuesToAdd: ArrayType1D
-
         if (data instanceof Series) {
             colunmValuesToAdd = data.values as ArrayType1D
         } else if (Array.isArray(data)) {
@@ -105,17 +104,12 @@ export default class DataFrame extends NDframe {
             throw new err.ColumnNamesLengthError(this._columns, this.shape)
         }
 
-        if (this._config.lowMemoryMode) {
-            //Update row ($data) array
-            for (let i = 0; i < this._data.length; i++) {
-                (this._data as any)[i][columnIndex] = colunmValuesToAdd[i]
-            }
-            //Update the dtypes
-            const _dtype = utils.inferDtype(colunmValuesToAdd)[0]
-            this._dtypes.set(column, _dtype)
-
+        for (let i = 0; i < this._data.length; i++) {
+            (this._data[i] as Array<string | number | boolean | Date>)[columnIndex] = colunmValuesToAdd[i]
         }
+        //Update the dtypes
+        const _dtype = utils.inferDtype(colunmValuesToAdd)[0]
+        this._dtypes.set(column, _dtype)
     }
-
 
 }

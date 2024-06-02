@@ -67,7 +67,7 @@ export interface LoadObjectDataType {
 
 export interface NDframeInterface {
     // config?: ConfigsType;
-    setDtypes(dtypes: Array<string>, infer: boolean): void;
+    setDtypes(dtypes: Dtypes, infer: boolean): void;
     setIndex(index: Array<string | number>): void;
     resetIndex(): void;
     setColumnNames(columns: string[]): void

@@ -123,7 +123,7 @@ export function sortMapByKeys<T, P>(map: Map<T, P>, keys: T[]): Map<T, P> {
  * Infer data type from an array or array of arrays
  * @param data An array or array of arrays
  */
-export function inferDtype(data: ArrayType1D | ArrayType2D): string[] {
+export function inferDtype(data: ArrayType1D | ArrayType2D): Dtypes[] {
     if (isOneDArray(data)) {
         return [typeChecker(data as ArrayType1D)];
     } else {
@@ -175,7 +175,9 @@ function typeChecker(array: ArrayType1D): Dtypes {
     }
     if ((typeCountr.get('empty') ?? 0) == array.length)
         return 'string'
-    typeCountr.delete('empty')
+    if (typeChecker.length == 0)
+
+        typeCountr.delete('empty')
     if ((typeCountr.get('string') ?? 0) > 0)
         return 'string'
     if ((typeCountr.get('float') ?? 0) > 0)
@@ -240,25 +242,25 @@ export function castDtypes(data: ArrayType1D | ArrayType2D, dtype: Dtypes): Arra
         if (dtype === 'string') {
             data_ = (data as ArrayType1D).map(num => isEmpty(num) ? '' : num.toString());
         } else if (dtype === 'int') {
-            data_ = (data as ArrayType1D).map(num => Math.floor(num));
+            data_ = (data as ArrayType1D).map(num => Math.floor(num as number));
         } else if (dtype === 'float') {
             data_ = (data as ArrayType1D).map(num => Number(num));
         } else if (dtype === 'boolean') {
             data_ = (data as ArrayType1D).map(num => Boolean(num));
         } else if (dtype === 'datetime') {
-            data_ = (data as ArrayType1D).map(num => new Date(Date.parse(num)));
+            data_ = (data as ArrayType1D).map(num => new Date(Date.parse(num as string)));
         }
     } else {
         if (dtype === 'string') {
             data_ = (data as ArrayType2D).map(row => row.map(num => num.toString()));
         } else if (dtype === 'int') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => Math.floor(num)));
+            data_ = (data as ArrayType2D).map(row => row.map(num => Math.floor(num as number)));
         } else if (dtype === 'float') {
             data_ = (data as ArrayType2D).map(row => row.map(num => Number(num)));
         } else if (dtype === 'boolean') {
             data_ = (data as ArrayType2D).map(row => row.map(num => Boolean(num)));
         } else if (dtype === 'datetime') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => new Date(Date.parse(num))));
+            data_ = (data as ArrayType2D).map(row => row.map(num => new Date(Date.parse(num as string))));
         }
     }
     return data_ as ArrayType1D | ArrayType2D

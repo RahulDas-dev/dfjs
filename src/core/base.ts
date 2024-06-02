@@ -37,12 +37,23 @@ export default class NDframe implements NDframeInterface {
             this.loadArrayIntoNdframe({ data, index: index_, columns, dtypes });
         else if (utils.isObjectArray(data))
             this.loadObjectIntoNdframe({ data, type: 1, index: index_, columns: columns ?? [], dtypes })
-        else if (Array.isArray(data))
-            this.loadArrayIntoNdframe({ data, index: index_, columns, dtypes });
+        else if (utils.isOneDArray(data) || utils.istwoDArray(data)) {
+            const data_ = data as ArrayType1D | ArrayType2D
+            this.loadArrayIntoNdframe({ data: data_, index: index_, columns, dtypes });
+        }
         else if (utils.isObject(data))
             this.loadObjectIntoNdframe({ data, type: 2, index: index_, columns: columns ?? [], dtypes });
         else
             throw new Error("File format not supported!");
+    }
+    get index(): (string | number)[] {
+        throw new Error("Method not implemented.");
+    }
+    get size(): number {
+        throw new Error("Method not implemented.");
+    }
+    print(): void {
+        throw new Error("Method not implemented.");
     }
 
     /**
@@ -153,7 +164,7 @@ export default class NDframe implements NDframeInterface {
      * performs a check to ensure that the column names are unique, and same length as the
      * number of columns in the data.
     */
-    private setColumnNames(columns?: string[]) {
+    setColumnNames(columns?: string[]) {
         columns = columns ?? []
         if (!Array.isArray(columns))
             throw new err.ColumnTypeInvalidError()
@@ -201,7 +212,7 @@ export default class NDframe implements NDframeInterface {
      * array of indices. Performs all necessary checks to ensure that the
      * index is valid.
     */
-    private setIndex(index: Array<string | number> = []): void {
+    setIndex(index: Array<string | number> = []): void {
         if (!Array.isArray(index))
             throw new err.IndexInvalidError()
         if (index.length > 0) {
@@ -228,9 +239,9 @@ export default class NDframe implements NDframeInterface {
      * Internal function to set the Dtypes of the NDFrame from an array. This function
      * performs the necessary checks.
     */
-    private setDtypes(dtypes: Dtypes | 'infer' = 'infer'): void {
-        const _dtypes = new Map<string, string>()
-        let _dtypes_extracted = new Array<string>()
+    setDtypes(dtypes: Dtypes | 'infer' = 'infer'): void {
+        const _dtypes = new Map<string, Dtypes>()
+        let _dtypes_extracted = new Array<Dtypes>()
         if (this._isSeries) {
             if (dtypes == 'infer') {
                 _dtypes_extracted = utils.inferDtype(this._data)

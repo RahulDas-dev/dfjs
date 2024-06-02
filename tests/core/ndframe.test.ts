@@ -2,7 +2,7 @@ import { test, describe, assert } from 'vitest'
 import { DataFrame } from '../../src/index'
 
 
-describe(('NDFrame Testing'), function () {
+describe(('NDFrame Testing '), function () {
   describe('with Empty Data', function () {
     test('interface testing with Empty list', function () {
       const data = [];
