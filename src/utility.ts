@@ -236,36 +236,49 @@ export function getRowAndColValues(obj: object): [ArrayType1D | ArrayType2D, str
 }
 
 
-export function castDtypes(data: ArrayType1D | ArrayType2D, dtype: Dtypes): ArrayType1D | ArrayType2D {
-    let data_
+export function castDtypes(data: ArrayType1D | ArrayType2D, dtypes: Array<Dtypes>): ArrayType1D | ArrayType2D {
     if (isOneDArray(data)) {
-        if (dtype === 'string') {
-            data_ = (data as ArrayType1D).map(num => isEmpty(num) ? '' : num.toString());
-        } else if (dtype === 'int') {
-            data_ = (data as ArrayType1D).map(num => Math.floor(num as number));
-        } else if (dtype === 'float') {
-            data_ = (data as ArrayType1D).map(num => Number(num));
-        } else if (dtype === 'boolean') {
-            data_ = (data as ArrayType1D).map(num => Boolean(num));
-        } else if (dtype === 'datetime') {
-            data_ = (data as ArrayType1D).map(num => new Date(Date.parse(num as string)));
+        let data_: ArrayType1D = []
+        for (const dtype of dtypes) {
+            if (dtype === 'string') {
+                data_ = (data as ArrayType1D).map(num => isEmpty(num) ? '' : num.toString());
+            } else if (dtype === 'int') {
+                data_ = (data as ArrayType1D).map(num => Math.floor(num as number));
+            } else if (dtype === 'float') {
+                data_ = (data as ArrayType1D).map(num => Number(num));
+            } else if (dtype === 'boolean') {
+                data_ = (data as ArrayType1D).map(num => Boolean(num));
+            } else if (dtype === 'datetime') {
+                data_ = (data as ArrayType1D).map(num => new Date(Date.parse(num as string)));
+            }
         }
+        return data_
     } else {
-        if (dtype === 'string') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => num.toString()));
-        } else if (dtype === 'int') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => Math.floor(num as number)));
-        } else if (dtype === 'float') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => Number(num)));
-        } else if (dtype === 'boolean') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => Boolean(num)));
-        } else if (dtype === 'datetime') {
-            data_ = (data as ArrayType2D).map(row => row.map(num => new Date(Date.parse(num as string))));
+        const data_: ArrayType2D = []
+        for (const row of data as ArrayType2D) {
+            // eslint-disable-next-line @typescript-eslint/prefer-for-of
+            const new_row = []
+            let item
+            for (let i = 0; i < dtypes.length; i++) {
+                if (dtypes[i] === 'string')
+                    item = String(row[i])
+                else if (dtypes[i] === 'int')
+                    item = Math.floor(row[i] as number)
+                else if (dtypes[i] === 'float')
+                    item = Number(row[i])
+                else if (dtypes[i] === 'boolean')
+                    item = Boolean(row[i])
+                else if (dtypes[i] === 'datetime')
+                    item = new Date(Date.parse(row[i] as string))
+                else
+                    continue
+                new_row.push(item)
+            }
+            data_.push(new_row)
         }
+        return data_
     }
-    return data_ as ArrayType1D | ArrayType2D
 }
-
 
 /**
  * Converts a 2D array of array to 1D array for Series Class

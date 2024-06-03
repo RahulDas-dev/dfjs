@@ -1,4 +1,5 @@
 import { ParseConfig } from 'papaparse';
+import DataFrame from '../core/frame';
 
 export type Dtypes = "float" | "int" | "string" | "boolean" | "datetime"
 
@@ -25,7 +26,7 @@ export interface BaseDataOptionType {
     type?: number;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Dtypes
+    dtypes?: Array<Dtypes>
     config?: DataFrameConfig;
 }
 
@@ -46,7 +47,7 @@ export interface NdframeInputDataType {
     type?: number;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Dtypes
+    dtypes?: Array<Dtypes>
     config?: Partial<DataFrameConfig>;
 }
 
@@ -54,7 +55,7 @@ export interface LoadArrayDataType {
     data?: ArrayType1D | ArrayType2D
     index: Array<string | number>
     columns?: string[]
-    dtypes?: Dtypes
+    dtypes?: Array<Dtypes>
 }
 
 export interface LoadObjectDataType {
@@ -62,12 +63,12 @@ export interface LoadObjectDataType {
     data: object | Array<object>
     index: Array<string | number>
     columns: string[]
-    dtypes?: Dtypes
+    dtypes?: Array<Dtypes>
 }
 
 export interface NDframeInterface {
     // config?: ConfigsType;
-    setDtypes(dtypes: Dtypes, infer: boolean): void;
+    setDtypes(dtypes: Array<Dtypes> | undefined): void;
     setIndex(index: Array<string | number>): void;
     resetIndex(): void;
     setColumnNames(columns: string[]): void
@@ -84,3 +85,9 @@ export interface NDframeInterface {
 }
 
 export type SeriesInterface = NDframeInterface
+
+
+export interface DataFrameInterface extends NDframeInterface {
+    head(rows?: number): DataFrame
+    tail(rows?: number): DataFrame
+}

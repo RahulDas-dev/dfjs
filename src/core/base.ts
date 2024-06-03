@@ -239,13 +239,16 @@ export default class NDframe implements NDframeInterface {
      * Internal function to set the Dtypes of the NDFrame from an array. This function
      * performs the necessary checks.
     */
-    setDtypes(dtypes: Dtypes | 'infer' = 'infer'): void {
+    setDtypes(dtypes: Array<Dtypes> | undefined): void {
         const _dtypes = new Map<string, Dtypes>()
         let _dtypes_extracted = new Array<Dtypes>()
         if (this._isSeries) {
-            if (dtypes == 'infer') {
+            if (dtypes === undefined) {
                 _dtypes_extracted = utils.inferDtype(this._data)
-            } else {
+            }
+            else if (dtypes instanceof Map)
+                _dtypes_extracted = Array.from(dtypes.values())
+            else {
                 if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
                     this._data = utils.castDtypes(this._data, dtypes)
                     _dtypes_extracted = [dtypes]
@@ -257,8 +260,10 @@ export default class NDframe implements NDframeInterface {
             if (this._data.length == 0)
                 _dtypes_extracted = []
             else {
-                if (dtypes == 'infer')
+                if (dtypes === undefined)
                     _dtypes_extracted = utils.inferDtype(this._data)
+                else if (dtypes instanceof Map)
+                    _dtypes_extracted = Array.from(dtypes.values())
                 else {
                     if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
                         this._data = utils.castDtypes(this._data, dtypes)
