@@ -246,28 +246,31 @@ export default class NDframe implements NDframeInterface {
             if (dtypes === undefined) {
                 _dtypes_extracted = utils.inferDtype(this._data)
             }
-            else if (dtypes instanceof Map)
-                _dtypes_extracted = Array.from(dtypes.values())
-            else {
-                if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
+            else if (Array.isArray(dtypes)) {
+                if (dtypes.length == 0) {
+                    _dtypes_extracted = utils.inferDtype(this._data)
+                }
+                else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
                     this._data = utils.castDtypes(this._data, dtypes)
-                    _dtypes_extracted = [dtypes]
+                    _dtypes_extracted = dtypes
                 }
                 else
                     throw new err.DtypesInvalidError()
             }
-        } else {
+        }
+        else {
             if (this._data.length == 0)
                 _dtypes_extracted = []
             else {
                 if (dtypes === undefined)
                     _dtypes_extracted = utils.inferDtype(this._data)
-                else if (dtypes instanceof Map)
-                    _dtypes_extracted = Array.from(dtypes.values())
-                else {
-                    if (typeof dtypes === 'string' && DATA_TYPES.includes(dtypes)) {
+                else if (Array.isArray(dtypes)) {
+                    if (dtypes.length == 0) {
+                        _dtypes_extracted = utils.inferDtype(this._data)
+                    }
+                    else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
                         this._data = utils.castDtypes(this._data, dtypes)
-                        _dtypes_extracted = new Array<Dtypes>(this.column_count).fill(dtypes)
+                        _dtypes_extracted = dtypes
                     }
                     else
                         throw new err.DtypesInvalidError()

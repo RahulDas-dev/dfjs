@@ -60,7 +60,7 @@ describe(('NDFrame Testing '), function () {
       assert.deepEqual(df1.shape, [4, 2]);
       assert.equal(df1.ndim, 2);
 
-      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: 'int' });
+      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: ['int', 'int'] });
       assert.deepEqual(df2.columns, ["beta", "gama"]);
       assert.deepEqual(df2.dtypes, ['int', 'int']);
       assert.equal(df2.isEmpty, false);
@@ -77,7 +77,7 @@ describe(('NDFrame Testing '), function () {
       assert.deepEqual(df1.shape, [4, 2]);
       assert.equal(df1.ndim, 2);
 
-      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: 'string' });
+      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: ['string', 'string'] });
       assert.deepEqual(df2.columns, ["beta", "gama"]);
       assert.deepEqual(df2.dtypes, ['string', 'string']);
       assert.equal(df2.isEmpty, false);
@@ -94,7 +94,7 @@ describe(('NDFrame Testing '), function () {
       assert.deepEqual(df1.shape, [4, 2]);
       assert.equal(df1.ndim, 2);
 
-      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: 'string' });
+      const df2 = new DataFrame(data, { columns: ["beta", "gama"], dtypes: ['string', 'string'] });
       assert.deepEqual(df2.columns, ["beta", "gama"]);
       assert.deepEqual(df2.dtypes, ['string', 'string']);
       assert.equal(df2.isEmpty, false);
