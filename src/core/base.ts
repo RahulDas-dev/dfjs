@@ -47,7 +47,7 @@ export default class NDframe implements NDframeInterface {
             throw new Error("File format not supported!");
     }
     get index(): (string | number)[] {
-        throw new Error("Method not implemented.");
+        return this._index
     }
     get size(): number {
         throw new Error("Method not implemented.");
@@ -79,8 +79,12 @@ export default class NDframe implements NDframeInterface {
             }
             else {
                 const rowLen = (this._data).length
-                const colLen = (this._data[0] as []).length
-                return [rowLen, colLen]
+                if (Array.isArray(this._data[0])) {
+                    const colLen = (this._data[0] as []).length
+                    return [rowLen, colLen]
+                } else {
+                    return [rowLen, 1]
+                }
             }
         }
     }
@@ -175,7 +179,7 @@ export default class NDframe implements NDframeInterface {
                 }
                 this._columns = columns
             } else {
-                this._columns = ["0"]
+                this._columns = ["column_1"]
             }
         }
         else {
@@ -224,7 +228,7 @@ export default class NDframe implements NDframeInterface {
             }
             this._index = index
         } else {
-            this._index = math.range(0, this.shape[0] - 1).toArray() as Array<string | number> //generate index
+            this._index = math.range(0, this.shape[0]).toArray() as Array<string | number> //generate index
         }
     }
 
@@ -232,7 +236,7 @@ export default class NDframe implements NDframeInterface {
      * Internal function to reset the index of the NDFrame using a range of indices.
     */
     resetIndex(): void {
-        this._index = math.range(0, this.shape[0] - 1).toArray() as Array<string | number>
+        this._index = math.range(0, this.shape[0]).toArray() as Array<string | number>
     }
 
     /**

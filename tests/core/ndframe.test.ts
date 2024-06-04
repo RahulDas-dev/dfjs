@@ -1,5 +1,6 @@
 import { test, describe, assert } from 'vitest'
 import { DataFrame } from '../../src/index'
+import Series from '../../src/core/series'
 
 
 describe(('NDFrame Testing '), function () {
@@ -56,6 +57,7 @@ describe(('NDFrame Testing '), function () {
       const df1 = new DataFrame(data);
       assert.deepEqual(df1.columns, ["alpha", "count"]);
       assert.deepEqual(df1.dtypes, ['string', 'int']);
+      assert.deepEqual(df1.index, [0, 1, 2, 3]);
       assert.equal(df1.isEmpty, false);
       assert.deepEqual(df1.shape, [4, 2]);
       assert.equal(df1.ndim, 2);
@@ -99,6 +101,59 @@ describe(('NDFrame Testing '), function () {
       assert.deepEqual(df2.dtypes, ['string', 'string']);
       assert.equal(df2.isEmpty, false);
       assert.deepEqual(df2.shape, [4, 2]);
+      assert.equal(df2.ndim, 2);
+    })
+  })
+
+  describe('With 1D Data', function () {
+    test('interface testing with object type 1D Array', function () {
+      const data = ["A", "B", "C", "D"];
+      const df1 = new Series(data);
+      assert.deepEqual(df1.columns, ["column_1"]);
+      assert.deepEqual(df1.dtypes, ['string']);
+      assert.equal(df1.isEmpty, false);
+      assert.deepEqual(df1.shape, [4, 1]);
+      assert.equal(df1.ndim, 1);
+
+      const df2 = new DataFrame(data, { columns: ["beta"], dtypes: ['int'] });
+      assert.deepEqual(df2.columns, ["beta"]);
+      assert.deepEqual(df2.dtypes, ['int']);
+      assert.equal(df2.isEmpty, false);
+      assert.deepEqual(df2.shape, [4, 1]);
+      assert.equal(df2.ndim, 2);
+    })
+
+    test('interface testing with List of object type data', function () {
+      const data = [{ count: 1 }, { count: 2 }, { count: 3 }, { count: 4 }];
+      const df1 = new Series(data);
+      assert.deepEqual(df1.columns, ["count"]);
+      assert.deepEqual(df1.dtypes, ['int']);
+      assert.equal(df1.isEmpty, false);
+      assert.deepEqual(df1.shape, [4, 1]);
+      assert.equal(df1.ndim, 1);
+
+      const df2 = new DataFrame(data, { columns: ["count"], dtypes: ['int'] });
+      assert.deepEqual(df2.columns, ["count"]);
+      assert.deepEqual(df2.dtypes, ['int']);
+      assert.equal(df2.isEmpty, false);
+      assert.deepEqual(df2.shape, [4, 1]);
+      assert.equal(df2.ndim, 2);
+    })
+
+    test('interface testing with 2D array', function () {
+      const data = [["A"], ["B"], ["C"], ["D"]];
+      const df1 = new Series(data);
+      assert.deepEqual(df1.columns, ["column_1"]);
+      assert.deepEqual(df1.dtypes, ['string']);
+      assert.equal(df1.isEmpty, false);
+      assert.deepEqual(df1.shape, [4, 1]);
+      assert.equal(df1.ndim, 1);
+
+      const df2 = new DataFrame(data, { columns: ["beta"], dtypes: ['string'] });
+      assert.deepEqual(df2.columns, ["beta"]);
+      assert.deepEqual(df2.dtypes, ['string']);
+      assert.equal(df2.isEmpty, false);
+      assert.deepEqual(df2.shape, [4, 1]);
       assert.equal(df2.ndim, 2);
     })
   })

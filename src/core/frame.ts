@@ -29,7 +29,7 @@ export default class DataFrame extends NDframe implements DataFrameInterface {
         const that = this;
         if (column && typeof column === "string") {
             Object.defineProperty(that, column, {
-                get() {
+                get(): Series {
                     return that.getColumnData(column)
                 },
                 set(arr: ArrayType1D | Series) {
@@ -41,7 +41,7 @@ export default class DataFrame extends NDframe implements DataFrameInterface {
             for (const col of columns) {
                 const column = col;
                 Object.defineProperty(this, column, {
-                    get() {
+                    get(): Series {
                         return that.getColumnData(column)
                     },
                     set(arr: ArrayType1D | Series) {
@@ -57,7 +57,7 @@ export default class DataFrame extends NDframe implements DataFrameInterface {
      * @param column column name to get the column data
      * @param returnSeries Whether to return the data in series format or not. Defaults to true
      */
-    private getColumnData(column: string, returnSeries = true) {
+    private getColumnData(column: string) {
         const columnIndex = this._columns.indexOf(column)
         if (columnIndex == -1) {
             throw new err.ColumnNotFoundError(column)
@@ -71,16 +71,13 @@ export default class DataFrame extends NDframe implements DataFrameInterface {
             if (Array.isArray(row))
                 data.push(row[columnIndex])
         }
-        if (returnSeries) {
-            return new Series(data, {
-                dtypes,
-                index,
-                columns,
-                config
-            })
-        } else {
-            return data
-        }
+        return new Series(data, {
+            dtypes,
+            index,
+            columns,
+            config
+        })
+
     }
 
     /**
