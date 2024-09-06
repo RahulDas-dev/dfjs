@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
-import { CsvInputOptionsBrowser, CsvOutputOptionsBrowser } from '../types/base';
+import { ICsvInputOptionsBrowser, ICsvOutputOptionsBrowser } from '../types/base';
 import DataFrame from '../core/frame';
+import Series from '../core/series';
 
 /**
  * Reads a CSV file from local or remote location into a DataFrame.
@@ -10,12 +11,12 @@ import DataFrame from '../core/frame';
  * @returns DataFrame containing the parsed CSV file.
  * @example
  * ```
- * import { readCSV } from "danfojs-node"
+ * import { readCSV } from "dfjs-node"
  * const df = await readCSV("https://raw.githubusercontent.com/test.csv")
  * ```
  * @example
  * ```
- * import { readCSV } from "danfojs-node"
+ * import { readCSV } from "dfjs-node"
  * const df = await readCSV("https://raw.githubusercontent.com/test.csv", {
  *    delimiter: ",",
  *    headers: {
@@ -26,13 +27,13 @@ import DataFrame from '../core/frame';
  * ```
  * @example
  * ```
- * import { readCSV } from "danfojs-node"
+ * import { readCSV } from "dfjs-node"
  * const df = await readCSV("./data/sample.csv")
  * ```
  */
-export const readCSV = async (file: string, options?: CsvInputOptionsBrowser): Promise<DataFrame> => {
-  const frameConfig = options?.frameConfig ?? {}
-  console.log(frameConfig)
+export const readCSV = async (file: string, options?: ICsvInputOptionsBrowser): Promise<DataFrame> => {
+  // const frameConfig = options?.frameConfig ?? {}
+  // console.log(frameConfig)
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -52,7 +53,7 @@ export const readCSV = async (file: string, options?: CsvInputOptionsBrowser): P
 };
 
 
-export const toCSV = (df: DataFrame, options?: CsvOutputOptionsBrowser): string | void => {
+export const toCSV = (df: DataFrame | Series, options?: ICsvOutputOptionsBrowser): string | void => {
   const { fileName, download, sep, header } = { fileName: "output.csv", sep: ",", header: true, download: false, ...options }
   const csv = df.tocsv(sep, header);
   if (download) {

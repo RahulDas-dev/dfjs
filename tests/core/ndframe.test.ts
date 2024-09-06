@@ -44,15 +44,15 @@ describe(('NDFrame Testing '), function () {
 
       const df = new DataFrame([{}, {}], { columns: ["beta", "gama"] });
       assert.deepEqual(df.columns, ["beta", "gama"]);
-      assert.deepEqual(df.dtypes, []);
+      assert.deepEqual(df.dtypes, ['string', 'string']);
       assert.equal(df.isEmpty, true);
-      assert.deepEqual(df.shape, [0, 0]);
+      assert.deepEqual(df.shape, [2, 0]);
       assert.equal(df.ndim, 2);
     })
   })
 
   describe('with 2D Data', function () {
-    test('interface testing with object type data', function () {
+    test('interface testing with Records of Array', function () {
       const data = { alpha: ["A", "B", "C", "D"], count: [1, 2, 3, 4] };
       const df1 = new DataFrame(data);
       assert.deepEqual(df1.columns, ["alpha", "count"]);

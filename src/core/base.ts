@@ -1,66 +1,79 @@
 import {
-    ArrayType1D,
-    ArrayType2D,
-    LoadArrayDataType,
-    LoadObjectDataType,
-    NdframeInputDataType,
-    DataFrameConfig,
-    Dtypes,
-    NDframeInterface
+    TArray1D,
+    TArray2D,
+    INdframeInputData,
+    IDataFrameConfig,
+    TDtypes,
+    INDframe,
+    TArrayOfRecord,
+    TRecordOfArray,
+    TRecordOfSeries,
+    TinternalDtypes
 } from "../types/base";
 import { DATA_FRAME_CONFIG, DATA_TYPES } from "../constants";
 import * as err from "../error";
 import * as math from 'mathjs'
-
 import * as utils from '../utility'
 
 
-export default class NDframe implements NDframeInterface {
+export default class NDframe implements INDframe {
+
     protected readonly _isSeries: boolean
-    protected _data: ArrayType2D | ArrayType1D
-    // protected _dataIncolumnFormat: ArrayType1D | ArrayType2D
+    protected _data: TArray2D | TArray1D
     protected _index: Array<string | number>
     protected _columns: string[]
-    protected _dtypes: Map<string, Dtypes>
-    protected readonly _config: DataFrameConfig
+    protected _dtypes: Map<string, TDtypes>
+    protected _shape: [number, number]
+    protected _internalDtypes: TinternalDtypes
+    protected readonly _config: IDataFrameConfig
 
-    constructor({ isSeries, data, index, columns, dtypes, config }: NdframeInputDataType) {
+    constructor({ isSeries, data, index, columns, dtypes, config }: INdframeInputData) {
+
         this._isSeries = isSeries
         this._data = []
         this._index = []
         this._columns = []
-        this._dtypes = new Map<string, Dtypes>()
+        this._shape = [0, 0]
+        this._dtypes = new Map<string, TDtypes>()
+        this._internalDtypes = "unknown"
         this._config = config ? { ...DATA_FRAME_CONFIG, ...config } : DATA_FRAME_CONFIG
 
-        const index_ = index ?? []
-        if (data === undefined || data === null)
-            this.loadArrayIntoNdframe({ data, index: index_, columns, dtypes });
-        else if (utils.isObjectArray(data))
-            this.loadObjectIntoNdframe({ data, type: 1, index: index_, columns: columns ?? [], dtypes })
-        else if (utils.isOneDArray(data) || utils.istwoDArray(data)) {
-            const data_ = data as ArrayType1D | ArrayType2D
-            this.loadArrayIntoNdframe({ data: data_, index: index_, columns, dtypes });
+        const data_ = data ?? [];
+        const index_ = index ?? [];
+        const columns_ = columns ?? []
+        const dtypes_ = dtypes ?? []
+        if (!Array.isArray(columns_))
+            throw new err.ColumnTypeInvalidError()
+        if (!Array.isArray(index_))
+            throw new err.IndexInvalidError()
+        if (utils.isOneDArray(data_)) {
+            this._internalDtypes = "Array1D"
+            this.array1or2DtoNdframe(data_, index_, columns_, dtypes_);
         }
-        else if (utils.isObject(data))
-            this.loadObjectIntoNdframe({ data, type: 2, index: index_, columns: columns ?? [], dtypes });
+        else if (utils.isTwoDArray(data_)) {
+            this._internalDtypes = "Array2D"
+            this.array1or2DtoNdframe(data_, index_, columns_, dtypes_);
+        }
+        else if (utils.isArrayOfRecord(data_))
+            this.arrayOfRecords2Ndframe(data_, index_, columns_, dtypes_)
+        else if (utils.isRecordOfArray(data_))
+            this.recordOfArray2Ndframe(data_, index_, columns_, dtypes_);
+        else if (utils.isRecordOfSeries(data_))
+            this.series2Ndframe(data_, index_, columns_, dtypes_);
+        else if (utils.isObject(data_)) {
+            this._internalDtypes = "Array1D"
+            this.object2Ndframe(data_, index_, columns_, dtypes_);
+        }
         else
             throw new Error("File format not supported!");
     }
+
     get index(): (string | number)[] {
         return this._index
     }
+
     get size(): number {
         throw new Error("Method not implemented.");
-    }
-    print(): void {
-        throw new Error("Method not implemented.");
-    }
-
-    /**
-    * Returns the underlying data in Array format.
-    */
-    get values(): ArrayType1D | ArrayType2D {
-        return this._data;
     }
 
     get isSeries(): boolean {
@@ -70,35 +83,16 @@ export default class NDframe implements NDframeInterface {
     /**
     * Returns the shape of the NDFrame. Shape is determined by [row length, column length]
     */
-    get shape(): Array<number> {
-        if (this._isSeries)
-            return (this._data.length === 0) ? [0, 1] : [this._data.length, 1];
-        else {
-            if (this._data.length === 0) {
-                return [0, 0]
-            }
-            else {
-                const rowLen = (this._data).length
-                if (Array.isArray(this._data[0])) {
-                    const colLen = (this._data[0] as []).length
-                    return [rowLen, colLen]
-                } else {
-                    return [rowLen, 1]
-                }
-            }
-        }
+    get shape(): [number, number] {
+        return this._shape
     }
 
-    /* private get row_count(): number {
-        return this.shape[0]
-    } */
-
-    private get column_count(): number {
-        return this.shape[1]
+    get config(): IDataFrameConfig {
+        return this._config
     }
 
     get isEmpty(): boolean {
-        return this._data.length > 0 ? false : true
+        return this.shape[1] > 0 ? false : true
     }
 
     /**
@@ -106,61 +100,115 @@ export default class NDframe implements NDframeInterface {
      * @param data The array of data to load into NDFrame
      * @param index Array of numeric or string names for subsetting array.
      * @param columns Array of column names.
-     * @param dtypes Array of data types for each the column.
+     * @param TDtypes Array of data types for each the column.
     */
-    private loadArrayIntoNdframe({ data, index, columns, dtypes }: LoadArrayDataType): void {
-        // this.$data = utils.replaceUndefinedWithNaN(data, this.$isSeries);
-        if (data === undefined || data === null)
-            this._data = []
-        else
-            this._data = data
-        if (!this._config.lowMemoryMode) {
-            // this._dataIncolumnFormat = utils.transposeArray(data);
-        }
+    private array1or2DtoNdframe(data: TArray1D | TArray2D, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        this.setData(data)
         this.setIndex(index);
-        this.setColumnNames(columns);
+        this.setColumns(columns);
         this.setDtypes(dtypes);
     }
 
     /**
      * Internal function to format and load a Javascript object or object of arrays into NDFrame.
      * @param data Object or object of arrays.
-     * @param type The type of the object. There are two recognized types:
      * 
-     * - type 1 object are in JSON format `[{a: 1, b: 2}, {a: 30, b: 20}]`.
+     * - object are in JSON format `[{a: 1, b: 2}, {a: 30, b: 20}]`.
      * 
-     * - type 2 object are of the form `{a: [1,2,3,4], b: [30,20, 30, 20}]}`
      * @param index Array of numeric or string names for subsetting array.
      * @param columns Array of column names.
-     * @param dtypes Array of data types for each the column.
+     * @param TDtypes Array of data types for each the column.
     */
-    private loadObjectIntoNdframe({ data, type, index, columns, dtypes }: LoadObjectDataType): void {
-        if (type === 1) {
-            if (Array.isArray(data)) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                const _data = data.filter(item => Object.keys(item).length !== 0).map((item) => Object.values(item)) as ArrayType1D | ArrayType2D;
-                if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
-                    columns = Object.keys(data[0] as object)
-                }
-
-                this.loadArrayIntoNdframe({ data: _data, index, columns, dtypes });
-            }
-            else
-                throw Error('Not a Valid Data Type')
-        } else if (type === 2) {
-            if (utils.isObject(data)) {
-                const [_data, _colNames] = utils.getRowAndColValues(data);
-                if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
-                    columns = _colNames
-                }
-                // const _columnNames = (columns.length > 0) ? columns : _colNames
-                this.loadArrayIntoNdframe({ data: _data, index, columns, dtypes });
-            }
-            else
-                throw Error('Not a Valid Data Type')
+    private arrayOfRecords2Ndframe(data: TArrayOfRecord, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        const [data_, columns_] = utils.perseArrayOfRecord(data);
+        if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0))
+            columns = columns_
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
+            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
         }
-        else
-            throw Error('Not a Valid Data Type')
+        else {
+            this._internalDtypes = 'Array2D'
+            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+        }
+    }
+
+    /**
+     * Internal function to format and load a Javascript object or object of arrays into NDFrame.
+     * @param data Object or object of arrays.
+     * object are of the form `{a: [1,2,3,4], b: [30,20, 30, 20]}`
+     * @param index Array of numeric or string names for subsetting array.
+     * @param columns Array of column names.
+     * @param TDtypes Array of data types for each the column.
+    */
+    private recordOfArray2Ndframe(data: TRecordOfArray, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        const [data_, columns_] = utils.perseRecoredsOfArray(data);
+        if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0))
+            columns = columns_
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
+            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
+        }
+        else {
+            this._internalDtypes = 'Array2D'
+            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+        }
+    }
+
+    private series2Ndframe(data: TRecordOfSeries, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        const [data_, columns_] = utils.perseRecoredsOfSeries(data);
+        if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0))
+            columns = columns_
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
+            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
+        } else {
+            this._internalDtypes = 'Array2D'
+            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+        }
+    }
+
+    private object2Ndframe(data: Record<string | number, unknown>, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        const columns_ = Object.keys(data).map((val) => val.toString());
+        if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
+            columns = columns_
+        }
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            const data_: TArray1D = Object.values(data) as TArray1D;
+            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+        } else {
+            this._internalDtypes = 'Array2D'
+            const data_ = Object.values(data).map((val) => [val]) as TArray2D;
+            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+        }
+    }
+
+    private setData(data: TArray1D | TArray2D): void {
+        this._data = data
+        this.setShape()
+    }
+
+    private setShape(): void {
+        if (this._isSeries)
+            this._shape = (this._data.length === 0) ? [0, 1] : [this._data.length, 1];
+        else {
+            if (this._data.length === 0) {
+                this._shape = [0, 0]
+            }
+            else {
+                const rowLen = (this._data).length
+                if (Array.isArray(this._data[0])) {
+                    const colLen = (this._data[0] as []).length
+                    this._shape = [rowLen, colLen]
+                } else {
+                    this._shape = [rowLen, 1]
+                }
+            }
+        }
     }
 
     /**
@@ -168,8 +216,7 @@ export default class NDframe implements NDframeInterface {
      * performs a check to ensure that the column names are unique, and same length as the
      * number of columns in the data.
     */
-    setColumnNames(columns?: string[]) {
-        columns = columns ?? []
+    setColumns(columns: string[]) {
         if (!Array.isArray(columns))
             throw new err.ColumnTypeInvalidError()
         if (this._isSeries) {
@@ -184,7 +231,7 @@ export default class NDframe implements NDframeInterface {
         }
         else {
             if (columns.length > 0) {
-                if (this._data.length != 0 && columns.length != this.column_count) {
+                if (!this.isEmpty && columns.length != this.shape[1]) {
                     throw new err.ColumnNamesLengthError(columns, this.shape)
                 }
                 const colset = new Map<string, number>()
@@ -198,17 +245,12 @@ export default class NDframe implements NDframeInterface {
                 for (const item of columns) {
                     const count = colset.get(item) ?? 0
                     const colname: string = (count > 1) ? `${item}_${count}` : item
-                    // console.log(`HI ${colname}`)
                     this._columns.push(colname)
                 }
             } else {
                 this._columns = math.range(1, this.shape[1], true).toArray().map((val) => `column_${Number(val)}`) //generate columns
             }
         }
-    }
-
-    get columns(): string[] {
-        return this._columns
     }
 
     /**
@@ -240,22 +282,24 @@ export default class NDframe implements NDframeInterface {
     }
 
     /**
-     * Internal function to set the Dtypes of the NDFrame from an array. This function
+     * Internal function to set the TDtypes of the NDFrame from an array. This function
      * performs the necessary checks.
     */
-    setDtypes(dtypes: Array<Dtypes> | undefined): void {
-        const _dtypes = new Map<string, Dtypes>()
-        let _dtypes_extracted = new Array<Dtypes>()
+    setDtypes(dtypes: Array<TDtypes> = []): void {
+        const _dtypes = new Map<string, TDtypes>()
+        let _dtypes_extracted = new Array<TDtypes>()
         if (this._isSeries) {
+            if (!Array.isArray(dtypes))
+                throw new err.DtypesInvalidError()
             if (dtypes === undefined) {
-                _dtypes_extracted = utils.inferDtype(this._data)
+                _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
             }
             else if (Array.isArray(dtypes)) {
                 if (dtypes.length == 0) {
-                    _dtypes_extracted = utils.inferDtype(this._data)
+                    _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
                 }
                 else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
-                    this._data = utils.castDtypes(this._data, dtypes)
+                    this._data = utils.castDtypes(this._data, dtypes, this._internalDtypes)
                     _dtypes_extracted = dtypes
                 }
                 else
@@ -263,22 +307,20 @@ export default class NDframe implements NDframeInterface {
             }
         }
         else {
+            if (!Array.isArray(dtypes))
+                throw new err.DtypesInvalidError()
             if (this._data.length == 0)
                 _dtypes_extracted = []
             else {
-                if (dtypes === undefined)
-                    _dtypes_extracted = utils.inferDtype(this._data)
-                else if (Array.isArray(dtypes)) {
-                    if (dtypes.length == 0) {
-                        _dtypes_extracted = utils.inferDtype(this._data)
-                    }
-                    else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
-                        this._data = utils.castDtypes(this._data, dtypes)
-                        _dtypes_extracted = dtypes
-                    }
-                    else
-                        throw new err.DtypesInvalidError()
+                if (dtypes.length == 0) {
+                    _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
                 }
+                else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
+                    this._data = utils.castDtypes(this._data, dtypes, this._internalDtypes)
+                    _dtypes_extracted = dtypes
+                }
+                else
+                    throw new err.DtypesInvalidError()
             }
         }
         for (let i = 0; i < _dtypes_extracted.length; i++) {
@@ -290,9 +332,9 @@ export default class NDframe implements NDframeInterface {
     }
 
     /**
-     * Returns the dtypes of the columns
+     * Returns the TDtypes of the columns
     */
-    get dtypes(): Array<string> {
+    get dtypes(): Array<TDtypes> {
         return [...this._dtypes.values()]
     }
 
@@ -304,19 +346,7 @@ export default class NDframe implements NDframeInterface {
         return this._isSeries ? 1 : 2;
     }
 
-    tocsv(sep: string, header: boolean): string {
-        if (this._isSeries) {
-            const csvStr = this._data.join(sep);
-            return csvStr
-        } else {
-            const rows = this._data as ArrayType2D
-            let csvStr = (header === true) ? `${this.columns.join(sep)}\n` : ""
-            for (const item of rows) {
-                const rowstr = `${item.join(sep)}\n`;
-                csvStr += rowstr;
-            }
-            return csvStr
-        }
+    get columns(): string[] {
+        return this._columns
     }
-
 }

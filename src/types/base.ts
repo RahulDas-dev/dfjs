@@ -1,93 +1,98 @@
 import { ParseConfig } from 'papaparse';
 import DataFrame from '../core/frame';
+import Series from '../core/series';
+import * as tf from '@tensorflow/tfjs';
 
-export type Dtypes = "float" | "int" | "string" | "boolean" | "datetime"
 
-export type ArrayType2D = Array<
-    number[]
-    | string[]
-    | boolean[]
-    | Date[]
-    | (number | string | boolean | Date)[]>
+export type TDtypes = "float" | "int" | "string" | "boolean" | "datetime"
 
-export type ArrayType1D = Array<
-    number
-    | string
-    | boolean
-    | Date
-    | (number | string | boolean | Date)>
+export type TinternalDtypes = "Array1D" | "Array2D" | "unknown"
 
-export interface DataFrameConfig {
+export type TItem = number | string | Date | boolean
+
+export type TArray1D = Array<number | string | Date | TItem>
+
+export type TArray2D = Array<number[] | string[] | boolean[] | Date[] | TArray1D>
+
+export type TArrayOfRecord = Array<Record<string | number, TItem>>;
+
+export type TRecordOfArray = Record<string | number, TArray1D>;
+
+export type TRecordOfSeries = Record<string | number, object>;
+
+export type TSimpleRecord = Record<string | number, TItem>;
+
+export type InputDtypes = TArray1D | TArray2D | TArrayOfRecord | TRecordOfArray | TRecordOfSeries | TSimpleRecord
+
+export interface IDataFrameConfig {
     lowMemoryMode: boolean
     tfInstance: boolean
 }
 
-export interface BaseDataOptionType {
+export interface IBaseDataOption {
     type?: number;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Array<Dtypes>
-    config?: DataFrameConfig;
+    dtypes?: Array<TDtypes>
+    config?: IDataFrameConfig;
 }
 
-export interface CsvInputOptionsBrowser extends ParseConfig {
-    frameConfig?: BaseDataOptionType
+export interface ICsvInputOptionsBrowser extends ParseConfig {
+    frameConfig?: IBaseDataOption
 }
 
-export interface CsvOutputOptionsBrowser {
+export interface ICsvOutputOptionsBrowser {
     fileName?: string,
     sep?: string,
     header?: boolean,
     download?: boolean
 };
 
-export interface NdframeInputDataType {
+
+export interface INdframeInputData {
     isSeries: boolean;
-    data?: ArrayType1D | ArrayType2D | Array<object> | object;
-    type?: number;
+    data?: InputDtypes;
     index?: Array<string | number>
     columns?: string[]
-    dtypes?: Array<Dtypes>
-    config?: Partial<DataFrameConfig>;
+    dtypes?: Array<TDtypes>
+    config?: Partial<IDataFrameConfig>;
 }
 
-export interface LoadArrayDataType {
-    data?: ArrayType1D | ArrayType2D
-    index: Array<string | number>
-    columns?: string[]
-    dtypes?: Array<Dtypes>
-}
-
-export interface LoadObjectDataType {
-    type: number;
-    data: object | Array<object>
-    index: Array<string | number>
-    columns: string[]
-    dtypes?: Array<Dtypes>
-}
-
-export interface NDframeInterface {
-    // config?: ConfigsType;
-    setDtypes(dtypes: Array<Dtypes> | undefined): void;
+export interface INDframe {
+    setDtypes(dtypes: Array<TDtypes> | undefined): void;
     setIndex(index: Array<string | number>): void;
     resetIndex(): void;
-    setColumnNames(columns: string[]): void
-    get dtypes(): Array<string>;
+    setColumns(columns: string[]): void
+    get config(): IDataFrameConfig;
+    get dtypes(): Array<TDtypes>;
     get ndim(): number;
-    // get axis(): AxisType;
     get index(): Array<string | number>;
     get columns(): string[]
-    get shape(): Array<number>;
-    get values(): ArrayType1D | ArrayType2D
-    // get tensor(): any
+    get shape(): [number, number];
     get size(): number;
-    print(): void;
 }
 
-export type SeriesInterface = NDframeInterface
+
+export interface ISeries extends INDframe {
+    head(rows?: number): Series
+    tail(rows?: number): Series
+    get values(): TArray1D
+    get tensor(): tf.Tensor1D
+    get columns(): [string]
+    copy(): Series
+    print(): void;
+    tocsv(sep: string): string
+}
 
 
-export interface DataFrameInterface extends NDframeInterface {
+export interface IDataFrame extends INDframe {
     head(rows?: number): DataFrame
     tail(rows?: number): DataFrame
+    get values(): TArray2D
+    get tensor(): tf.Tensor2D
+    get columns(): string[]
+    copy(): DataFrame
+    describe(): DataFrame
+    print(): void;
+    tocsv(sep: string, header: boolean): string
 }
