@@ -33,7 +33,7 @@
     "vite-plugin-dts": "^3.9.1"
   },
   "dependencies": {
-    "@tensorflow/tfjs": "^4.19.0",
+    "@tensorflow/tfjs": "^4.21.0",
     "@vitest/coverage-v8": "^2.1.0",
     "papaparse": "^5.4.1",
     "table": "^6.8.2",
