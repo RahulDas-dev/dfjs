@@ -59,7 +59,7 @@ export function isOneDArray(data: unknown): data is TArray1D {
     if (data.length === 0) {
         return true;
     }
-        const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
+    const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
     return data.slice(0, checklimit).every(element =>
         typeof element === 'number' ||
         typeof element === 'string' ||
@@ -138,7 +138,7 @@ export function isRecordOfArray(data: unknown): data is TRecordOfArray {
         throw Error("Length Error: Length of Rows must be the same!");
     }
     return true;
-}   
+}
 
 /**
  * Type guard function to check if an item is of type Record<string | number, TItem>.
@@ -146,14 +146,14 @@ export function isRecordOfArray(data: unknown): data is TRecordOfArray {
  * @returns True if the item is of type Record<string | number, TItem>, otherwise false.
  */
 export function isSeries(obj: unknown): obj is Series {
+
     return (
         obj &&
-        (typeof (obj as Series).values !== 'undefined') &&
+        typeof (obj as Series).head === 'function' &&
+        typeof (obj as Series).tail === 'function' &&
+        typeof (obj as Series).values !== 'undefined' &&
         Array.isArray((obj as Series).shape) &&
-        (typeof (obj as Series).dtype === 'string') &&
-        Array.isArray((obj as Series).index) &&
-        Array.isArray((obj as Series).columns) &&
-        Array.isArray((obj as Series).values)
+        Array.isArray((obj as Series).index)
     ) as boolean;
 }
 
@@ -220,11 +220,6 @@ export function perseArrayOfRecord(data: TArrayOfRecord): [TArray2D, string[]] {
 export function perseRecoredsOfArray(data: TRecordOfArray): [TArray2D, string[]] {
     const colNames = Object.keys(data);
     const colData = Object.values(data);
-    // const firstColLen = colData[0].length
-    // const hasSameColLen = colData.map((item) => item.length).every((ln) => ln === firstColLen)
-    // if (!hasSameColLen) {
-    //    throw Error("Length Error: Length of columns must be the same!");
-    // }
     const rowsArr = transposeArray(colData)
     return [rowsArr, colNames];
 }
@@ -236,11 +231,6 @@ export function perseRecoredsOfArray(data: TRecordOfArray): [TArray2D, string[]]
 export function perseRecoredsOfSeries(data: TRecordOfSeries): [TArray2D, string[]] {
     const colNames = Object.keys(data);
     const colData: Series[] = Object.values(data) as Series[];
-    // const firstColLen: number = colData[0].shape[0];
-    // const hasSameColLen = colData.map((item) => item.shape[0]).every((ln) => ln === firstColLen);
-    // if (!hasSameColLen) {
-    //    throw Error("Length Error: Length of columns must be the same!");
-    // }
     const colData_: TArray1D[] = [];
     for (const col of colData) {
         colData_.push(col.values);
@@ -294,13 +284,13 @@ export function inferDtype(data: TArray1D | TArray2D, internalDtype: TinternalDt
         return [typeChecker(data as TArray1D)];
     } else if (internalDtype === 'Array2D') {
         const checklimit = (data.length < tableconfig.dtypeTestLim) ? data.length : tableconfig.dtypeTestLim;
-        const arrSlice = transposeArray((data.slice(0, checklimit)) as TArray2D) 
+        const arrSlice = transposeArray((data.slice(0, checklimit)) as TArray2D)
         const dtypes = arrSlice.map((innerArr) => {
             return typeChecker(innerArr);
         });
         return dtypes;
     } else {
-        throw Error("Data Error: Data must be a 1D or 2D array")     
+        throw Error("Data Error: Data must be a 1D or 2D array")
     }
 }
 
@@ -325,9 +315,6 @@ function typeChecker(array: TArray1D): TDtypes {
     for (const ele of array) {
         if (typeof ele == "boolean") {
             typeCountr.set('boolean', (typeCountr.get('boolean') ?? 0) + 1)
-        } else if (isEmpty(ele)) {
-            // typeCountr.set('empty', (typeCountr.get('empty') ?? 0) + 1)
-            continue
         } else if (isDate(ele)) {
             typeCountr.set('datetime', (typeCountr.get('datetime') ?? 0) + 1)
         } else if (!isNaN(Number(ele))) {
@@ -368,18 +355,17 @@ export function transposeArray(arr: TArray2D): TArray2D {
     if (arr.length === 0 || arr[0].length === 0) {
         return arr.map(() => []);
     }
-        const rowLen: number = arr.length;
-        const colLen: number = arr[0].length;
-        const transposed = [];
-        for (let i = 0; i < colLen; i++) {
-            const temp = [];
-            for (let j = 0; j < rowLen; j++) {
-            // const _elem = arr[j][i]
+    const rowLen: number = arr.length;
+    const colLen: number = arr[0].length;
+    const transposed = [];
+    for (let i = 0; i < colLen; i++) {
+        const temp = [];
+        for (let j = 0; j < rowLen; j++) {
             temp.push(arr[j][i]);
-            }
-            transposed.push(temp);
         }
-        return transposed;
+        transposed.push(temp);
+    }
+    return transposed;
 }
 
 export function castDtypes(data: TArray1D | TArray2D, dtypes: Array<TDtypes>, internalDtype: TinternalDtypes): TArray1D | TArray2D {
@@ -438,22 +424,40 @@ export function convert2DArrayTo1DArray(data: TArray2D): TArray1D {
 }
 
 /**
-* Generates an array of integers between specified range
-* @param start The starting number.
-* @param end The ending number.
-*/
-export function range(start: number, end: number): Array<number> {
-    if (end < start) {
-        throw new Error("ParamError: end must be greater than start")
+ * Generates a sequence of numbers within a specified range.
+ *
+ * @param {number} start - The starting value of the range.
+ * @param {number} end - The ending value of the range (exclusive).
+ * @param {number} [step=1] - The increment value between each number in the range. Defaults to 1.
+ * @returns {number[]} An array containing the sequence of numbers.
+ * @throws {Error} Step cannot be less or equal to zero.
+ *
+ * @example
+ * // Generates an array from 0 to 10 with a step of 2
+ * range(0, 10, 2); // Output: [0, 2, 4, 6, 8]
+ *
+ * @example
+ * // Generates a decreasing array from 10 to 0 with a step of -2
+ * range(10, 0, 2); // Output: [10, 8, 6, 4, 2]
+ */
+export function range(start: number, end: number, step = 1): Array<number> {
+    const result = [];
+    if (step <= 0) {
+        throw new Error("Step cannot be less or equal to zero.");
     }
-    if (start === end) {
-        return [start]
+    if (start < end) {
+        for (let i = start; i < end; i += step) {
+            result.push(i);
+        }
     }
-    const arr = [];
-    for (let i = start; i <= end; i++) {
-        arr.push(i);
+    else if (start == end) {
+        result.push(start)
+    } else {
+        for (let i = start; i > end; i -= step) {
+            result.push(i);
+        }
     }
-    return arr;
+    return result;
 }
 
 /**

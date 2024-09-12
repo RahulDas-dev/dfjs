@@ -12,7 +12,6 @@ import {
 } from "../types/base";
 import { DATA_FRAME_CONFIG, DATA_TYPES } from "../constants";
 import * as err from "../error";
-import * as math from 'mathjs'
 import * as utils from '../utility'
 
 
@@ -46,26 +45,26 @@ export default class NDframe implements INDframe {
             throw new err.ColumnTypeInvalidError()
         if (!Array.isArray(index_))
             throw new err.IndexInvalidError()
-        if (utils.isOneDArray(data_)) {
-            this._internalDtypes = "Array1D"
-            this.array1or2DtoNdframe(data_, index_, columns_, dtypes_);
-        }
-        else if (utils.isTwoDArray(data_)) {
-            this._internalDtypes = "Array2D"
-            this.array1or2DtoNdframe(data_, index_, columns_, dtypes_);
-        }
+        if (utils.isOneDArray(data_))
+            this._1Darray2Ndframe(data_, index_, columns_, dtypes_);
+        else if (utils.isTwoDArray(data_))
+            this._2Darray2Ndframe(data_, index_, columns_, dtypes_);
         else if (utils.isArrayOfRecord(data_))
-            this.arrayOfRecords2Ndframe(data_, index_, columns_, dtypes_)
+            this._arrayOfRecords2Ndframe(data_, index_, columns_, dtypes_)
         else if (utils.isRecordOfArray(data_))
-            this.recordOfArray2Ndframe(data_, index_, columns_, dtypes_);
+            this._recordOfArray2Ndframe(data_, index_, columns_, dtypes_);
         else if (utils.isRecordOfSeries(data_))
             this.series2Ndframe(data_, index_, columns_, dtypes_);
-        else if (utils.isObject(data_)) {
-            this._internalDtypes = "Array1D"
-            this.object2Ndframe(data_, index_, columns_, dtypes_);
-        }
+        else if (utils.isObject(data_))
+            this._object2Ndframe(data_, index_, columns_, dtypes_);
         else
             throw new Error("File format not supported!");
+    }
+    get dtypes(): TDtypes[] {
+        throw new Error("Method not implemented.");
+    }
+    get columns(): string[] {
+        throw new Error("Method not implemented.");
     }
 
     get index(): (string | number)[] {
@@ -91,9 +90,7 @@ export default class NDframe implements INDframe {
         return this._config
     }
 
-    get isEmpty(): boolean {
-        return this.shape[1] > 0 ? false : true
-    }
+
 
     /**
      * Internal function to load array of data into NDFrame
@@ -102,11 +99,37 @@ export default class NDframe implements INDframe {
      * @param columns Array of column names.
      * @param TDtypes Array of data types for each the column.
     */
-    private array1or2DtoNdframe(data: TArray1D | TArray2D, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+    private _array1or2DtoNdframe(data: TArray1D | TArray2D, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
         this.setData(data)
         this.setIndex(index);
         this.setColumns(columns);
         this.setDtypes(dtypes);
+    }
+
+    private _1Darray2Ndframe(data: TArray1D, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            this._array1or2DtoNdframe(data, index, columns, dtypes);
+        }
+        else {
+            this._internalDtypes = 'Array2D'
+            const data_ = (data.length > 0) ? data.map((val) => [val]) as TArray2D : [[]]
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
+        }
+    }
+
+    private _2Darray2Ndframe(data: TArray2D, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+        if (this._isSeries) {
+            this._internalDtypes = 'Array1D'
+            const data_ = (data.length > 0) ? data.map((val) => val.toString()) as TArray1D : []
+            const dtypes_ = (dtypes.length > 0) ? (['string'] as TDtypes[]) : []
+            this._array1or2DtoNdframe(data_, index, columns, dtypes_);
+        }
+        else {
+            this._internalDtypes = 'Array2D'
+
+            this._array1or2DtoNdframe(data, index, columns, dtypes);
+        }
     }
 
     /**
@@ -119,18 +142,18 @@ export default class NDframe implements INDframe {
      * @param columns Array of column names.
      * @param TDtypes Array of data types for each the column.
     */
-    private arrayOfRecords2Ndframe(data: TArrayOfRecord, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+    private _arrayOfRecords2Ndframe(data: TArrayOfRecord, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
         const [data_, columns_] = utils.perseArrayOfRecord(data);
         if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0))
             columns = columns_
         if (this._isSeries) {
             this._internalDtypes = 'Array1D'
             const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
-            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(_data_, index, columns, dtypes);
         }
         else {
             this._internalDtypes = 'Array2D'
-            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
         }
     }
 
@@ -142,18 +165,18 @@ export default class NDframe implements INDframe {
      * @param columns Array of column names.
      * @param TDtypes Array of data types for each the column.
     */
-    private recordOfArray2Ndframe(data: TRecordOfArray, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+    private _recordOfArray2Ndframe(data: TRecordOfArray, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
         const [data_, columns_] = utils.perseRecoredsOfArray(data);
         if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0))
             columns = columns_
         if (this._isSeries) {
             this._internalDtypes = 'Array1D'
             const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
-            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(_data_, index, columns, dtypes);
         }
         else {
             this._internalDtypes = 'Array2D'
-            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
         }
     }
 
@@ -164,14 +187,14 @@ export default class NDframe implements INDframe {
         if (this._isSeries) {
             this._internalDtypes = 'Array1D'
             const _data_ = (data_.length === 1) ? data_[0] : data_.map((val) => val.toString())
-            this.array1or2DtoNdframe(_data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(_data_, index, columns, dtypes);
         } else {
             this._internalDtypes = 'Array2D'
-            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
         }
     }
 
-    private object2Ndframe(data: Record<string | number, unknown>, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
+    private _object2Ndframe(data: Record<string | number, unknown>, index: (string | number)[], columns: string[], dtypes: TDtypes[]): void {
         const columns_ = Object.keys(data).map((val) => val.toString());
         if ((columns === undefined) || (Array.isArray(columns) && columns.length == 0)) {
             columns = columns_
@@ -179,22 +202,22 @@ export default class NDframe implements INDframe {
         if (this._isSeries) {
             this._internalDtypes = 'Array1D'
             const data_: TArray1D = Object.values(data) as TArray1D;
-            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
         } else {
             this._internalDtypes = 'Array2D'
             const data_ = Object.values(data).map((val) => [val]) as TArray2D;
-            this.array1or2DtoNdframe(data_, index, columns, dtypes);
+            this._array1or2DtoNdframe(data_, index, columns, dtypes);
         }
     }
 
-    private setData(data: TArray1D | TArray2D): void {
+    protected setData(data: TArray1D | TArray2D): void {
         this._data = data
         this.setShape()
     }
 
-    private setShape(): void {
+    protected setShape(): void {
         if (this._isSeries)
-            this._shape = (this._data.length === 0) ? [0, 1] : [this._data.length, 1];
+            this._shape = (this._data.length === 0) ? [0, NaN] : [this._data.length, NaN];
         else {
             if (this._data.length === 0) {
                 this._shape = [0, 0]
@@ -222,7 +245,7 @@ export default class NDframe implements INDframe {
         if (this._isSeries) {
             if (columns.length > 0) {
                 if (this._data.length != 0 && columns.length != 1 && typeof columns != 'string') {
-                    throw new err.ColumnNamesLengthError(columns, this.shape)
+                    throw new err.ColumnNamesLengthError(columns, this._shape)
                 }
                 this._columns = columns
             } else {
@@ -231,8 +254,8 @@ export default class NDframe implements INDframe {
         }
         else {
             if (columns.length > 0) {
-                if (!this.isEmpty && columns.length != this.shape[1]) {
-                    throw new err.ColumnNamesLengthError(columns, this.shape)
+                if (this._shape[1] > 0 && columns.length != this._shape[1]) {
+                    throw new err.ColumnNamesLengthError(columns, this._shape)
                 }
                 const colset = new Map<string, number>()
                 for (const item of columns) {
@@ -248,7 +271,10 @@ export default class NDframe implements INDframe {
                     this._columns.push(colname)
                 }
             } else {
-                this._columns = math.range(1, this.shape[1], true).toArray().map((val) => `column_${Number(val)}`) //generate columns
+                if (this.shape[1] == 0)
+                    this._columns = []
+                else
+                    this._columns = utils.range(0, this._shape[1]).map((val) => `column_${Number(val) + 1}`) //generate columns
             }
         }
     }
@@ -262,15 +288,18 @@ export default class NDframe implements INDframe {
         if (!Array.isArray(index))
             throw new err.IndexInvalidError()
         if (index.length > 0) {
-            if (this._data.length != 0 && index.length != this.shape[0]) {
-                throw new err.IndexLengthError(index, this.shape)
+            if (this._data.length != 0 && index.length != this._shape[0]) {
+                throw new err.IndexLengthError(index, this._shape)
             }
-            if (Array.from(new Set(index)).length !== this.shape[0]) {
+            if (Array.from(new Set(index)).length !== this._shape[0]) {
                 throw new err.IndexDuplicateError()
             }
             this._index = index
         } else {
-            this._index = math.range(0, this.shape[0]).toArray() as Array<string | number> //generate index
+            if (this._shape[0] == 0)
+                this._index = []
+            else
+                this._index = utils.range(0, this._shape[0]) as Array<string | number>
         }
     }
 
@@ -278,7 +307,10 @@ export default class NDframe implements INDframe {
      * Internal function to reset the index of the NDFrame using a range of indices.
     */
     resetIndex(): void {
-        this._index = math.range(0, this.shape[0]).toArray() as Array<string | number>
+        if (this._shape[0] == 0)
+            this._index = []
+        else
+            this._index = utils.range(0, this._shape[0]) as Array<string | number>
     }
 
     /**
@@ -291,12 +323,14 @@ export default class NDframe implements INDframe {
         if (this._isSeries) {
             if (!Array.isArray(dtypes))
                 throw new err.DtypesInvalidError()
-            if (dtypes === undefined) {
-                _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
-            }
             else if (Array.isArray(dtypes)) {
                 if (dtypes.length == 0) {
-                    _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
+                    if (this._shape[0] == 0)
+                        _dtypes_extracted = []
+                    else if (this._shape[1] == 0)
+                        _dtypes_extracted = []
+                    else
+                        _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
                 }
                 else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
                     this._data = utils.castDtypes(this._data, dtypes, this._internalDtypes)
@@ -313,7 +347,12 @@ export default class NDframe implements INDframe {
                 _dtypes_extracted = []
             else {
                 if (dtypes.length == 0) {
-                    _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
+                    if (this._shape[0] == 0)
+                        _dtypes_extracted = []
+                    else if (this._shape[1] == 0)
+                        _dtypes_extracted = []
+                    else
+                        _dtypes_extracted = utils.inferDtype(this._data, this._internalDtypes)
                 }
                 else if (dtypes.every(item => DATA_TYPES.includes(item) === true)) {
                     this._data = utils.castDtypes(this._data, dtypes, this._internalDtypes)
@@ -332,21 +371,10 @@ export default class NDframe implements INDframe {
     }
 
     /**
-     * Returns the TDtypes of the columns
-    */
-    get dtypes(): Array<TDtypes> {
-        return [...this._dtypes.values()]
-    }
-
-    /**
      * Returns the dimension of the data. Series have a dimension of 1,
      * while DataFrames have a dimension of 2.
     */
     get ndim(): number {
         return this._isSeries ? 1 : 2;
-    }
-
-    get columns(): string[] {
-        return this._columns
     }
 }

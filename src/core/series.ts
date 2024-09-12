@@ -1,4 +1,4 @@
-import { TArray1D, IBaseDataOption, TDtypes, InputDtypes, ISeries } from "../types/base";
+import { TArray1D, ISeriesOption, TDtypes, InputDtypes, ISeries } from "../types/base";
 import NDframe from "./base";
 import { DATA_FRAME_CONFIG } from "../constants";
 import * as utilty from '../utility'
@@ -7,9 +7,11 @@ import * as tf from '@tensorflow/tfjs';
 
 export default class Series extends NDframe implements ISeries {
 
-    constructor(data?: InputDtypes, options: IBaseDataOption = {}) {
-        const { index, columns, dtypes, config } = options;
+    constructor(data?: InputDtypes, options: ISeriesOption = {}) {
+        const { index, name, dtype, config } = options;
         const _config = config ? { ...DATA_FRAME_CONFIG, ...config } : DATA_FRAME_CONFIG
+        const columns = name ? [name] : [];
+        const dtypes = dtype ? [dtype] : [];
         super({
             data,
             index,
@@ -49,8 +51,12 @@ export default class Series extends NDframe implements ISeries {
         return this._data as TArray1D;
     }
 
-    get columns(): [string] {
-        return [this._columns[0]]
+    get isEmpty(): boolean {
+        return this._shape[0] > 0 ? false : true
+    }
+
+    get name(): string {
+        return this._columns[0]
     }
 
     /**
@@ -64,9 +70,9 @@ export default class Series extends NDframe implements ISeries {
     */
     copy(): Series {
         const sf = new Series([...this.values], {
-            columns: [...this.columns],
+            name: this.name,
             index: [...this.index],
-            dtypes: [...this.dtypes],
+            dtype: [...this._dtypes.values()][0],
             config: { ...this.config }
         });
         return sf;
@@ -118,10 +124,10 @@ export default class Series extends NDframe implements ISeries {
         if (rows <= 0) {
             throw new Error("ParamError: Number of rows cannot be less than 1")
         }
-        if (this.shape[0] <= rows) {
+        if (this._shape[0] <= rows) {
             return this.copy()
         }
-        if (this.shape[0] - rows < 0) {
+        if (this._shape[0] - rows < 0) {
             throw new Error("ParamError: Number of rows cannot be greater than available rows in data")
         }
         return this.iloc([`0:${rows}`])
@@ -141,14 +147,14 @@ export default class Series extends NDframe implements ISeries {
         if (rows <= 0) {
             throw new Error("ParamError: Number of rows cannot be less than 1")
         }
-        if (this.shape[0] <= rows) {
+        if (this._shape[0] <= rows) {
             return this.copy()
         }
-        if (this.shape[0] - rows < 0) {
+        if (this._shape[0] - rows < 0) {
             throw new Error("ParamError: Number of rows cannot be greater than available rows in data")
         }
 
-        const startIdx = this.shape[0] - rows
+        const startIdx = this._shape[0] - rows
         return this.iloc([`${startIdx}:`])
     }
 
@@ -176,10 +182,10 @@ export default class Series extends NDframe implements ISeries {
         const p75 = sortedTensor.slice([p75Idx], [1]).dataSync()[0];
 
         return new Series([values.length, mean, std, min, p25, p50, p75, max], {
-            dtypes: ['float'],
+            dtype: 'float',
             index: ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'],
-            columns: [],
-            config: this.config
+            name: '',
+            config: { ...this.config }
         })
     }
 
@@ -220,18 +226,36 @@ export default class Series extends NDframe implements ISeries {
     }
 
     get tensor(): tf.Tensor1D {
-        if (this.dtypes[0] === 'string')
+        if (this.dtype === 'string')
             return tf.tensor1d((this._data as Array<string>), 'string');
-        else if (this.dtypes[0] === 'datetime')
+        else if (this.dtype === 'datetime')
             return tf.tensor1d((this._data as Array<number>), 'string');
-        else if (this.dtypes[0] === 'int')
+        else if (this.dtype === 'int')
             return tf.tensor1d((this._data as Array<number>), 'int32');
-        else if (this.dtypes[0] === 'float')
+        else if (this.dtype === 'float')
             return tf.tensor1d((this._data as Array<number>), 'float32');
         else
             return tf.tensor1d((this._data as Array<boolean>), 'bool');
     }
 
+    isna(): Series {
+        const isnaData: Array<boolean> = []
+        for (const item of this._data) {
+            isnaData.push(utilty.isEmpty(item))
+        }
+
+        const ss = new Series(isnaData, {
+            name: this.name,
+            index: [...this._index],
+            dtype: 'boolean',
+            config: { ...this._config }
+        })
+        return ss
+    }
+
+    sum(): number {
+        return this.tensor.sum().dataSync()[0]
+    }
 
     print(): void {
         throw new Error("Method not implemented.");

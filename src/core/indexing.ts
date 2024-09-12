@@ -2,7 +2,7 @@ import Series from "./series";
 
 import DataFrame from "./frame";
 import { INDframe, TDtypes } from "../types/base";
-import * as math from 'mathjs'
+import * as utils from '../utility'
 
 
 /**
@@ -32,9 +32,9 @@ export function _iloc({ ndFrame, rows, columns }: {
             newData,
             {
                 index: newIndex,
-                columns: ndFrame.columns,
-                dtypes: ndFrame.dtypes,
-                config: ndFrame.config
+                name: ndFrame.name,
+                dtype: ndFrame.dtype,
+                config: { ...ndFrame.config }
             })
         return sf
     } else if (ndFrame instanceof DataFrame) {
@@ -54,7 +54,6 @@ export function _iloc({ ndFrame, rows, columns }: {
             newData.push(newRowDataWithRequiredCols)
             newIndex.push(_index[rowIndx])
         }
-
         for (const colIndx of _columnIndexes) {
             newColumnNames.push(ndFrame.columns[colIndx])
             newDtypes.push(ndFrame.dtypes[colIndx])
@@ -65,7 +64,7 @@ export function _iloc({ ndFrame, rows, columns }: {
                 index: newIndex,
                 columns: newColumnNames,
                 dtypes: newDtypes,
-                config: ndFrame.config
+                config: { ...ndFrame.config }
             })
         return df
     }
@@ -76,7 +75,7 @@ export function _iloc({ ndFrame, rows, columns }: {
 
 function _select_rows({ ndFrame, rows }: { ndFrame: INDframe, rows?: Array<string | number | boolean> | Series }): Array<number> {
     if (rows === undefined) {
-        return math.range(0, ndFrame.shape[0]).toArray() as Array<number>
+        return utils.range(0, ndFrame.shape[0])
     }
     if (rows instanceof Series) {
         rows = rows.values as Array<string | number>
@@ -86,7 +85,7 @@ function _select_rows({ ndFrame, rows }: { ndFrame: INDframe, rows?: Array<strin
     }
     let _rowIndexes: Array<number>
     if (rows.length == 0)
-        _rowIndexes = math.range(0, ndFrame.shape[0]).toArray() as Array<number>
+        _rowIndexes = utils.range(0, ndFrame.shape[0])
     else if (rows.length == 1 && typeof rows[0] == "string") {
         const rowSplit = rows[0].split(":")
         if (rowSplit.length != 2)
@@ -106,7 +105,7 @@ function _select_rows({ ndFrame, rows }: { ndFrame: INDframe, rows?: Array<strin
 
         if (end > ndFrame.shape[0])
             throw new Error(`row slice [end] index cannot be bigger than ${ndFrame.shape[0]}`);
-        _rowIndexes = math.range(start, end).toArray() as Array<number>
+        _rowIndexes = utils.range(start, end)
     } else {
         const _formatedRows = []
         const _index = ndFrame.index;
@@ -136,14 +135,14 @@ function _select_columns({ ndFrame, columns }: {
 }): Array<number> {
 
     if (columns === undefined)
-        return math.range(0, ndFrame.shape[1]).toArray() as Array<number>
+        return utils.range(0, ndFrame.shape[1])
 
     if (!Array.isArray(columns))
         throw new Error(`columns parameter must be an Array. For example: columns: [1,2] or columns: ["0:10"]`)
     let _columnIndexes: Array<number>
 
     if (!columns) {
-        _columnIndexes = math.range(0, ndFrame.shape[1]).toArray() as Array<number>
+        _columnIndexes = utils.range(0, ndFrame.shape[1])
 
     } else if (columns.length == 1 && typeof columns[0] == "string") {
         const columnSplit = columns[0].split(":")
@@ -169,7 +168,7 @@ function _select_columns({ ndFrame, columns }: {
         if (end > ndFrame.shape[1]) {
             throw new Error(`column slice [end] index cannot be bigger than ${ndFrame.shape[1]}`);
         }
-        _columnIndexes = math.range(start, end).toArray() as Array<number>
+        _columnIndexes = utils.range(start, end)
     } else {
         for (const column of columns) {
             if (typeof column != "number") {
@@ -273,7 +272,7 @@ export function _loc({ ndFrame, rows, columns }: {
         _rowIndexes = rowsIndexToUse
     }
 
-    const _columnNames = ndFrame.columns
+    const _columnNames = (ndFrame instanceof DataFrame) ? ndFrame.columns : [(ndFrame as Series).name]
 
     if (!columns) {
         _columnIndexes = _columnNames.map(columnName => _columnNames.indexOf(columnName))// Return all column index
@@ -329,9 +328,9 @@ export function _loc({ ndFrame, rows, columns }: {
             newData,
             {
                 index: newIndex,
-                columns: ndFrame.columns,
-                dtypes: ndFrame.dtypes,
-                config: ndFrame.config
+                name: ndFrame.name,
+                dtype: ndFrame.dtype,
+                config: { ...ndFrame.config }
             })
 
         return sf
